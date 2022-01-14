@@ -15,9 +15,9 @@ private:
     std::map<int, Socket *> sockets;
     Events                  *events;
 
-    void registerSignal();
+    static void registerSignal();
 public:
-    Daemon(Config *config, std::map<int, Socket *> sockets, Events *events);
+    Daemon(Config *config, const std::map<int, Socket *> &sockets, Events *events);
     void run();
 };
 

@@ -14,7 +14,7 @@ private:
 //    Config(const Config &other);
 public:
     Config(const std::string &path_to_file);
-    std::vector<Server *> getServers() const;
+    const std::vector<Server *> &getServers() const;
 
     class ConfigException : public std::exception {
         const std::string msg;

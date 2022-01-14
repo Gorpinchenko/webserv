@@ -17,6 +17,10 @@ public:
     Events(int max_size);
     void subscribe(int fd, short type);
     std::pair<int, struct kevent *> getUpdates(int = 5);
+
+    class KqueueException : public std::exception {
+        virtual const char *what() const throw();
+    };
 };
 
 

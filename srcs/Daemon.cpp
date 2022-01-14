@@ -1,6 +1,6 @@
 #include "Daemon.hpp"
 
-Daemon::Daemon(Config *config, std::map<int, Socket *> sockets, Events *events) :
+Daemon::Daemon(Config *config, const std::map<int, Socket *>& sockets, Events *events) :
         config(config),
         sockets(sockets),
         events(events) {
@@ -10,7 +10,7 @@ Daemon::Daemon(Config *config, std::map<int, Socket *> sockets, Events *events) 
 }
 
 void signal_handler(int signal) {
-    std::cout << "stopping on signal " << signal << std::endl;
+    std::cout << "stopping on signal" << std::endl;
     exit(signal);
 }
 

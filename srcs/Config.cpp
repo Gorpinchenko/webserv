@@ -14,7 +14,7 @@ void Config::parse(const std::string &path_to_file) {
 //    throw Config::ConfigException("Error while parsing config file");
 }
 
-std::vector<Server *> Config::getServers() const {
+const std::vector<Server *> &Config::getServers() const {
     return this->servers;
 }
 

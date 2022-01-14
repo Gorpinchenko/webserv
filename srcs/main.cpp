@@ -4,28 +4,37 @@
 #include "Events.hpp"
 #include "Daemon.hpp"
 
-void run(std::string path_to_file) {
-    Config *config = new Config(path_to_file);
-    Events *events = new Events(1000);
-    std::map < int, Socket * > sockets;
+void run(const std::string &path_to_file) {
+    Config                  *config;
+    Events                  *events;
+    std::map<int, Socket *> sockets;
 
-    std::cout << "run WebServ" << std::endl;
-    std::vector < Server * > servers = config->getServers();
+    config = new Config(path_to_file);
+    events = new Events(1000);
 
-    if (servers.size() != 0) {
-        std::vector<Server *>::iterator begin = servers.begin();
-        std::vector<Server *>::iterator end   = servers.end();
+    std::vector<Server *> servers = config->getServers();
+
+    if (!servers.empty()) {
+        std::cout << "set sockets" << std::endl;
+        std::vector<Server *>::iterator begin;
+        std::vector<Server *>::iterator end;
+        begin = servers.begin();
+        end   = servers.end();
 
         while (begin != end) {
-            Socket *socket   = new Socket((*begin)->getHost(), (*begin)->getPort());
-            int    socket_fd = socket->getSocketFd();
+            Socket *socket;
+            int    socket_fd;
+
+            socket    = new Socket((*begin)->getHost(), (*begin)->getPort());
+            socket_fd = socket->getSocketFd();
 
             sockets.insert(std::map<int, Socket *>::value_type(socket_fd, socket));
             events->subscribe(socket_fd, EVFILT_READ);
-            //            subscribe(socket_fd, EVFILT_READ);
             begin++;
         }
-        std::cout << "run WebServ" << std::endl;
+
+        Daemon daemon(config, sockets, events);
+        daemon.run();
     }
 
     Daemon daemon(config, sockets, events);
