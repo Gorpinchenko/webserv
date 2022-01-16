@@ -26,11 +26,19 @@ void Events::subscribe(int fd, short type) {
     }
 }
 
+void Events::unsubscribe(int fd) {//todo мб это не нужно
+    this->fds.erase(fd);
+}
+
 std::pair<int, struct kevent *> Events::getUpdates(int tout) {
     struct timespec tmout = {tout,0};// block for 5 seconds at most
     int             res   = kevent(this->queue_fd, nullptr, 0, this->res_event, this->max_size, &tmout);
 
     return std::make_pair(res, this->res_event);
+}
+
+std::set<int> &Events::getFds() {
+    return this->fds;
 }
 
 const char *Events::KqueueException::what() const throw() {

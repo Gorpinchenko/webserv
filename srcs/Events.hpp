@@ -16,7 +16,9 @@ private:
 public:
     Events(int max_size);
     void subscribe(int fd, short type);
+    void unsubscribe(int fd);
     std::pair<int, struct kevent *> getUpdates(int = 5);
+    std::set<int> &getFds();
 
     class KqueueException : public std::exception {
         virtual const char *what() const throw();
