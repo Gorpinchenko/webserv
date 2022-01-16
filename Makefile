@@ -4,7 +4,8 @@ SRC_FILES	= main.cpp \
 				Server.cpp \
 				Socket.cpp \
 				Events.cpp \
-				Daemon.cpp
+				Daemon.cpp \
+				MimeType.cpp
 
 NAME	= webserv
 
