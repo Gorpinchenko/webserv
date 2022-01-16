@@ -3,8 +3,13 @@ SRC_FILES	= main.cpp \
 				Location.cpp \
 				Server.cpp \
 				Socket.cpp \
+				Connection.cpp \
+				HttpRequest.cpp \
+				HttpResponse.cpp \
+				AHttpMessage.cpp \
 				Events.cpp \
-				Daemon.cpp
+				Daemon.cpp \
+				Print.cpp
 
 NAME	= webserv
 
