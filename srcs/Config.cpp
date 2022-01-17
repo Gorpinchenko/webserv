@@ -19,15 +19,22 @@ std::string directives[16] = {
     "file_upload",
     "upload_tmp_path",
     "index",
-    "client_max_body_size",
     "autoindex",
+    "cgi_pass",
     "server", // пока хз, мб проще выпилить
 };
 
-void (Config::*parseDirective[10])(
+std::string methods[4] = {
+    "GET",
+    "POST",
+    "DELETE",
+    "PUT"
+};
+
+void (Config::*parseDirective[15])(
     IDirective *server,
     std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator end) = {
+    std::vector<std::string>::iterator &end) = {
     &Config::parseListen,
     &Config::parsePort,
     &Config::parseServerName,
@@ -38,6 +45,11 @@ void (Config::*parseDirective[10])(
     &Config::parseRedirection,
     &Config::parseRoot,
     &Config::parseMethods,
+    &Config::parseFileUpload,
+    &Config::parseUploadTmpPath,
+    &Config::parseIndex,
+    &Config::parseAutoindex,
+    &Config::parseCgiPass
 };
 
 Config::Config(const std::string &path_to_file)
@@ -134,7 +146,8 @@ void Config::parseServerData(
 
         if (
             str != directives + length &&
-            str - directives < sizeof(parseDirective) / sizeof(parseDirective[0]))
+            str - directives < static_cast<long>(
+                sizeof(parseDirective) / sizeof(parseDirective[0])))
         {
             ++begin;
             (this->*parseDirective[(int)(str - directives)])(server, begin, end);
@@ -145,45 +158,20 @@ void Config::parseServerData(
         // }
         begin++;
     }
-
     _servers.push_back(server);
-
-    std::vector<Server *>::iterator s_it = _servers.begin();
-    while (s_it != _servers.end())
-    {
-        std::cout << (*s_it)->getHost() << std::endl;
-        std::cout << (*s_it)->getPort() << std::endl;
-        std::cout << (*s_it)->getServerName() << std::endl;
-        std::cout << (*s_it)->getClientMaxBodySize() << std::endl;
-        std::cout << (*s_it)->getMimeConfPath() << std::endl;
-
-        std::map<short, std::string> error_pages = (*s_it)->getErrorPages();
-        std::map<short, std::string>::iterator e_it = error_pages.begin();
-        while (e_it != error_pages.end())
-        {
-            std::cout << (*e_it).first << " " << (*e_it).second << std::endl;
-            e_it++;
-        }
-
-        std::vector<Location *> locations = (*s_it)->getLocations();
-        std::vector<Location *>::iterator l_it = locations.begin();
-        while (l_it != locations.end())
-        {
-            std::cout << (*l_it)->getPath()  << std::endl;
-            std::cout << (*l_it)->getRoot() << std::endl;
-            l_it++;
-        }
-
-        std::cout << (*s_it)->getRedirection() << std::endl;
-
-        ++s_it;
-    }
+    if (begin != end)
+        begin++;
+    this->parseServerData(begin, end);
 }
 
 const std::vector<Server *> &Config::getServers() const
 {
     return this->_servers;
 }
+
+Config::ConfigException::ConfigException()
+: msg("")
+{}
 
 Config::ConfigException::ConfigException(const std::string &msg)
 : msg("webserv: [error] " + msg)
@@ -245,48 +233,60 @@ void Config::checkTrashDirective(std::string const &name) const
 void Config::parseListen(
     IDirective *server,
     std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator end)
+    std::vector<std::string>::iterator &end)
 {
+    if (dynamic_cast<Location *>(server))
+        throw Config::ConfigException();
     ((Server *)server)->setHost(inet_addr((*value).data()));
 }
 
 void Config::parsePort(
     IDirective *server,
     std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator end)
+    std::vector<std::string>::iterator &end)
 {
+    if (dynamic_cast<Location *>(server))
+        throw Config::ConfigException();
     ((Server *)server)->setPort((uint16_t) atoll((*value).c_str()));
 }
 
 void Config::parseServerName(
     IDirective *server,
     std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator end)
+    std::vector<std::string>::iterator &end)
 {
+    if (dynamic_cast<Location *>(server))
+        throw Config::ConfigException();
     ((Server *)server)->setServerName(*value);
 }
 
 void Config::parseClientMaxBodySize(
     IDirective *server,
     std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator end)
+    std::vector<std::string>::iterator &end)
 {
+    if (dynamic_cast<Location *>(server))
+        throw Config::ConfigException();
     ((Server *)server)->setClientMaxBodySize(atoll((*value).c_str()) * 1000000);
 }
 
 void Config::parseMimeConfPath(
     IDirective *server,
     std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator end)
+    std::vector<std::string>::iterator &end)
 {
+    if (dynamic_cast<Location *>(server))
+        throw Config::ConfigException();
     ((Server *)server)->setMimeConfPath(*value);
 }
 
 void Config::parseErrorPages(
     IDirective *server,
     std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator end)
+    std::vector<std::string>::iterator &end)
 {
+    if (dynamic_cast<Location *>(server))
+        throw Config::ConfigException();
     short code = (short) std::atoi((*value).c_str());
     ++value;
     ((Server *)server)->setErrorPage(std::make_pair(code, *value));
@@ -295,7 +295,7 @@ void Config::parseErrorPages(
 void Config::parseLocation(
     IDirective *server,
     std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator end)
+    std::vector<std::string>::iterator &end)
 {
     int length;
     std::string *str;
@@ -304,9 +304,10 @@ void Config::parseLocation(
     if (*(++value) != "{")
         throw Config::ConfigException(
             "invalid number of arguments in location directive in " + _path_to_file);
-
     ++value;
+
     Location *location = new Location();
+
     while (*value != "}")
     {
         length = sizeof(directives) / sizeof(directives[0]);
@@ -314,10 +315,20 @@ void Config::parseLocation(
 
         if (
             str != directives + length &&
-            str - directives < sizeof(parseDirective) / sizeof(parseDirective[0]))
+            str - directives < static_cast<long>(
+                sizeof(parseDirective) / sizeof(parseDirective[0])))
         {
-            ++value;
-            (this->*parseDirective[(int)(str - directives)])(location, value, end);
+
+            try
+            {
+                ++value;
+                (this->*parseDirective[(int)(str - directives)])(location, value, end);
+            }
+            catch(...)
+            {
+                throw Config::ConfigException(
+                    "unknown location directive " + *str  + " in " + _path_to_file);
+            }
         }
         // else
         // {
@@ -332,15 +343,17 @@ void Config::parseLocation(
 void Config::parseRedirection(
     IDirective *server,
     std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator end)
+    std::vector<std::string>::iterator &end)
 {
+    if (dynamic_cast<Location *>(server))
+        throw Config::ConfigException();
     ((Server *)server)->setRedirection(*value);
 }
 
 void Config::parseRoot(
     IDirective *server,
     std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator end)
+    std::vector<std::string>::iterator &end)
 {
     ((Location *)server)->setRoot(*value);
 }
@@ -348,10 +361,78 @@ void Config::parseRoot(
 void Config::parseMethods(
     IDirective *server,
     std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator end)
+    std::vector<std::string>::iterator &end)
 {
-    (void) server;
-    (void) value;
-    (void) end;
-    // ((Location *)server)->setMethod(*value);
+    while (*value != ";")
+    {
+        int length = sizeof(methods) / sizeof(methods[0]);
+        std::string *str = std::find(methods, methods + length, *value);
+
+        if (str != methods + length)
+        {
+            ((Location *)server)->setMethod((int)(str - methods), true);
+        }
+        else
+        {
+            throw Config::ConfigException("method not supported in " + _path_to_file);
+        }
+        value++;
+    }
+    --value;
+}
+
+void Config::parseFileUpload(
+    IDirective *server,
+    std::vector<std::string>::iterator &value,
+    std::vector<std::string>::iterator &end)
+{
+    bool file_upload;
+
+    if (*value == "on")
+        file_upload = true;
+    else
+        file_upload = false;
+    // exception
+    // 
+    ((Location *)server)->setFileUpload(file_upload);
+}
+
+void Config::parseUploadTmpPath(
+    IDirective *server,
+    std::vector<std::string>::iterator &value,
+    std::vector<std::string>::iterator &end)
+{
+    ((Location *)server)->setUploadTmpPath(*value);
+}
+
+void Config::parseIndex(
+    IDirective *server,
+    std::vector<std::string>::iterator &value,
+    std::vector<std::string>::iterator &end)
+{
+    ((Location *)server)->setIndex(*value);
+}
+
+void Config::parseAutoindex(
+    IDirective *server,
+    std::vector<std::string>::iterator &value,
+    std::vector<std::string>::iterator &end)
+{
+    bool autoindex;
+
+    if (*value == "on")
+        autoindex = true;
+    else
+        autoindex = false;
+    // exception
+    // 
+    ((Location *)server)->setAutoindex(autoindex);
+}
+
+void Config::parseCgiPass(
+    IDirective *server,
+    std::vector<std::string>::iterator &value,
+    std::vector<std::string>::iterator &end)
+{
+    ((Location *)server)->setCgiPass(*value);
 }

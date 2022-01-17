@@ -34,6 +34,7 @@ public:
     private:
         std::string msg;
     public:
+        ConfigException();
         ConfigException(const std::string &msg);
         ~ConfigException() throw();
         const char *what() const throw();
@@ -52,52 +53,77 @@ public:
     void parseListen(
         IDirective *server,
         std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator end);
+        std::vector<std::string>::iterator &end);
 
     void parsePort(
         IDirective *server,
         std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator end);
+        std::vector<std::string>::iterator &end);
 
     void parseServerName(
         IDirective *server,
         std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator end);
+        std::vector<std::string>::iterator &end);
 
     void parseClientMaxBodySize(
         IDirective *server,
         std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator end);
+        std::vector<std::string>::iterator &end);
 
     void parseMimeConfPath(
         IDirective *server,
         std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator end);
+        std::vector<std::string>::iterator &end);
 
     void parseErrorPages(
         IDirective *server,
         std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator end);
+        std::vector<std::string>::iterator &end);
 
     void parseLocation(
         IDirective *server,
         std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator end);
+        std::vector<std::string>::iterator &end);
 
     void parseRedirection(
         IDirective *server,
         std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator end);
+        std::vector<std::string>::iterator &end);
 
     void parseRoot(
         IDirective *server,
         std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator end);
+        std::vector<std::string>::iterator &end);
 
     void parseMethods(
         IDirective *server,
         std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator end);
+        std::vector<std::string>::iterator &end);
+
+    void parseFileUpload(
+        IDirective *server,
+        std::vector<std::string>::iterator &value,
+        std::vector<std::string>::iterator &end);
+
+    void parseUploadTmpPath(
+        IDirective *server,
+        std::vector<std::string>::iterator &value,
+        std::vector<std::string>::iterator &end);
+
+    void parseIndex(
+        IDirective *server,
+        std::vector<std::string>::iterator &value,
+        std::vector<std::string>::iterator &end);
+
+    void parseAutoindex(
+        IDirective *server,
+        std::vector<std::string>::iterator &value,
+        std::vector<std::string>::iterator &end);
+
+    void parseCgiPass(
+        IDirective *server,
+        std::vector<std::string>::iterator &value,
+        std::vector<std::string>::iterator &end);
 };
 
 

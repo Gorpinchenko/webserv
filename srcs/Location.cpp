@@ -1,10 +1,8 @@
 #include "Location.hpp"
 
 Location::Location()
-: _methods()
-{
-	_methods[0] = true;
-}
+: _methods(4, false), _file_upload(false), _autoindex(false)
+{}
 
 Location::~Location()
 {}
