@@ -235,6 +235,7 @@ void Config::parseListen(
     std::vector<std::string>::iterator &value,
     std::vector<std::string>::iterator &end)
 {
+    (void)end;
     if (dynamic_cast<Location *>(server))
         throw Config::ConfigException();
     ((Server *)server)->setHost(inet_addr((*value).data()));
@@ -245,6 +246,7 @@ void Config::parsePort(
     std::vector<std::string>::iterator &value,
     std::vector<std::string>::iterator &end)
 {
+    (void)end;
     if (dynamic_cast<Location *>(server))
         throw Config::ConfigException();
     ((Server *)server)->setPort((uint16_t) atoll((*value).c_str()));
@@ -255,6 +257,7 @@ void Config::parseServerName(
     std::vector<std::string>::iterator &value,
     std::vector<std::string>::iterator &end)
 {
+    (void)end;
     if (dynamic_cast<Location *>(server))
         throw Config::ConfigException();
     ((Server *)server)->setServerName(*value);
@@ -265,6 +268,7 @@ void Config::parseClientMaxBodySize(
     std::vector<std::string>::iterator &value,
     std::vector<std::string>::iterator &end)
 {
+    (void)end;
     if (dynamic_cast<Location *>(server))
         throw Config::ConfigException();
     ((Server *)server)->setClientMaxBodySize(atoll((*value).c_str()) * 1000000);
@@ -275,6 +279,7 @@ void Config::parseMimeConfPath(
     std::vector<std::string>::iterator &value,
     std::vector<std::string>::iterator &end)
 {
+    (void)end;
     if (dynamic_cast<Location *>(server))
         throw Config::ConfigException();
     ((Server *)server)->setMimeConfPath(*value);
@@ -285,6 +290,7 @@ void Config::parseErrorPages(
     std::vector<std::string>::iterator &value,
     std::vector<std::string>::iterator &end)
 {
+    (void)end;
     if (dynamic_cast<Location *>(server))
         throw Config::ConfigException();
     short code = (short) std::atoi((*value).c_str());
@@ -345,6 +351,7 @@ void Config::parseRedirection(
     std::vector<std::string>::iterator &value,
     std::vector<std::string>::iterator &end)
 {
+    (void)end;
     if (dynamic_cast<Location *>(server))
         throw Config::ConfigException();
     ((Server *)server)->setRedirection(*value);
@@ -355,6 +362,7 @@ void Config::parseRoot(
     std::vector<std::string>::iterator &value,
     std::vector<std::string>::iterator &end)
 {
+    (void)end;
     ((Location *)server)->setRoot(*value);
 }
 
@@ -363,6 +371,7 @@ void Config::parseMethods(
     std::vector<std::string>::iterator &value,
     std::vector<std::string>::iterator &end)
 {
+    (void)end;
     while (*value != ";")
     {
         int length = sizeof(methods) / sizeof(methods[0]);
@@ -386,6 +395,7 @@ void Config::parseFileUpload(
     std::vector<std::string>::iterator &value,
     std::vector<std::string>::iterator &end)
 {
+    (void)end;
     bool file_upload;
 
     if (*value == "on")
@@ -402,6 +412,7 @@ void Config::parseUploadTmpPath(
     std::vector<std::string>::iterator &value,
     std::vector<std::string>::iterator &end)
 {
+    (void)end;
     ((Location *)server)->setUploadTmpPath(*value);
 }
 
@@ -410,6 +421,7 @@ void Config::parseIndex(
     std::vector<std::string>::iterator &value,
     std::vector<std::string>::iterator &end)
 {
+    (void)end;
     ((Location *)server)->setIndex(*value);
 }
 
@@ -418,6 +430,7 @@ void Config::parseAutoindex(
     std::vector<std::string>::iterator &value,
     std::vector<std::string>::iterator &end)
 {
+    (void)end;
     bool autoindex;
 
     if (*value == "on")
@@ -434,5 +447,6 @@ void Config::parseCgiPass(
     std::vector<std::string>::iterator &value,
     std::vector<std::string>::iterator &end)
 {
+    (void)end;
     ((Location *)server)->setCgiPass(*value);
 }

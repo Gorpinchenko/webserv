@@ -1,8 +1,19 @@
 #include "Location.hpp"
 
-Location::Location()
-: _methods(4, false), _file_upload(false), _autoindex(false)
-{}
+// default
+Location::Location(): 
+	_path(""),
+	_root(""),
+	_methods(4, false),
+	_file_upload(false),
+	_upload_tmp_path(""),
+	_index(""),
+	_autoindex(false),
+	_cgi_pass("")
+{
+	// default GET
+	_methods[0] = true;
+}
 
 Location::~Location()
 {}

@@ -1,7 +1,15 @@
 #include "Server.hpp"
 
-Server::Server()
-: _host(inet_addr("127.0.0.1")), _port(80), _error_pages(), _locations()
+// default
+Server::Server():
+    _host(inet_addr("127.0.0.1")),
+    _port(80),
+    _server_name(""),
+    _mime_conf_path(""),
+    _error_pages(),
+    _locations(),
+    _client_max_body_size(1000000000),
+    _redirection("")
 {}
 
 Server::~Server()
