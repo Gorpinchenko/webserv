@@ -45,6 +45,11 @@ public:
     void setLocations(std::vector<Location *> locations);
     void setLocation(Location *location);
     void setRedirection(std::string const &redirection);
+
+    const Location *getLocationFromRequestUri(const std::string &basicString);
+    unsigned long getMaxBody() const;
+    std::vector<Location *>::const_iterator checkCgi(std::string const &path) const;
+    std::string getCustomErrorPagePath(short code) const;
 };
 
 

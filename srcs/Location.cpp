@@ -1,7 +1,7 @@
 #include "Location.hpp"
 
 // default
-Location::Location(): 
+Location::Location():
 	_path(""),
 	_root(""),
 	_methods(4, false),
@@ -106,4 +106,17 @@ void Location::setAutoindex(bool autoindex)
 void Location::setCgiPass(std::string const &cgi_pass)
 {
 	_cgi_pass = cgi_pass;
+}
+
+bool Location::methodAllowed(const std::string &method) const {
+    (void)method;
+    return false;//todo
+}
+
+const std::string &Location::getRedirection() const {
+    return this->_path;//todo '_path' написана по приколу. Тут должено возвращаться свойство '_redirection' (оно же 'return' в конфиге nginx). Миша его собирался перенести из Server в Location
+}
+
+std::string Location::getAllowedMethodsField() const {
+    return std::string();
 }

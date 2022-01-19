@@ -42,6 +42,10 @@ public:
 	void setIndex(std::string const &index);
 	void setAutoindex(bool autoindex);
 	void setCgiPass(std::string const &cgi_pass);
+
+	bool methodAllowed(const std::string &method) const;
+	const std::string &getRedirection() const;
+	std::string getAllowedMethodsField() const;
 };
 
 
