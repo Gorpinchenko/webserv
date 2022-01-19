@@ -1,9 +1,11 @@
 #include "MimeType.hpp"
 
+std::multimap<std::string, std::string> MimeType::_types;
+
 MimeType::MimeType(const std::string &path_to_conf) {
     std::list<std::string> res;
 
-    MimeType::tokenizeFileStream(path_to_conf, res); //TODO разобраться
+    MimeType::tokenizeFileStream(path_to_conf, res);
     std::list<std::string>::iterator it = res.begin();
     std::list<std::string>::iterator end = res.end();
 
@@ -12,19 +14,16 @@ MimeType::MimeType(const std::string &path_to_conf) {
     } else {
         skipTokens(it, end, 2);
     }
-
     for (; it != end; ++it) {
         if (*it == "}") {
-            std::cout << "111111111111111";
             break;
         }
         std::string mime_type;
         mime_type = *it;
         skipTokens(it, end, 1);
-        std::cout << mime_type << " : " << *it << std::endl; //TODO убрать
 
         while (*it->rbegin() != ';') {
-//            _types.insert(std::make_pair(*it, mime_type));
+            _types.insert(std::make_pair(*it, mime_type));
             skipTokens(it, end, 1);
         }
         if (*(it->rbegin()) != ';') {
@@ -32,12 +31,19 @@ MimeType::MimeType(const std::string &path_to_conf) {
         }
     }
     if (*(it->rbegin()) != '}') {
-        throw MimeTypeException("Mime confing syntax error1");
+        throw MimeTypeException("Mime confing syntax error");
     }
-    std::list<std::string>::iterator test = ++it;
-    if (!(test->empty()))  {
-        throw MimeTypeException("Mime confing syntax error1111");
-    }
+}
+
+const char *MimeType::getType(const std::string &file_path)
+{
+    std::string ext = file_path.substr(file_path.find_last_of('.') + 1);
+    if (ext.empty())
+        return ("application/octet-stream");
+    std::multimap<std::string, std::string>::iterator res = _types.find(ext);
+    if (res == _types.end())
+        return ("application/octet-stream");
+    return res->second.data();
 }
 
 void MimeType::skipTokens(std::list<std::string>::iterator &it,
@@ -68,10 +74,12 @@ void MimeType::tokenizeFileStream(std::string const &file_path, std::list<std::s
                 if (std::isspace(*it) || *it == ';') {
                     if (!token.empty()) {
                         res.push_back(std::string(token));
+                        std::cout << token << std::endl; //TODO удалить
                         token.clear();
                     }
                     if (*it == ';') {
                         res.push_back(std::string(1, *it));
+                        std::cout << std::string(1, *it) << std::endl; //TODO удалить
                     }
                     continue;
                 }
