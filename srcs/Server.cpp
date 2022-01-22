@@ -102,3 +102,22 @@ void Server::setLocation(Location * location)
 {
     _locations.push_back(location);   
 }
+
+const Location *Server::getLocationFromRequestUri(const std::string &uri) {
+    (void)uri;
+    return nullptr;//todo у ребят называется getLocationFromRequest
+}
+
+unsigned long Server::getMaxBody() const {
+    return 0;//todo
+}
+
+std::vector<Location *>::const_iterator Server::checkCgi(const std::string &path) const {
+    (void)path;
+    return std::vector<Location *, std::allocator<Location *> >::const_iterator();
+}
+
+std::string Server::getCustomErrorPagePath(short code) const {
+    (void)code;
+    return std::string();
+}

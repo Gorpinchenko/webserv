@@ -42,6 +42,11 @@ public:
     void setErrorPage(std::pair<short, std::string> error_page);
     void setLocations(std::vector<Location *> locations);
     void setLocation(Location *location);
+
+    const Location *getLocationFromRequestUri(const std::string &basicString);
+    unsigned long getMaxBody() const;
+    std::vector<Location *>::const_iterator checkCgi(std::string const &path) const;
+    std::string getCustomErrorPagePath(short code) const;
 };
 
 

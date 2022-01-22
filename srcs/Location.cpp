@@ -1,7 +1,7 @@
 #include "Location.hpp"
 
 // default
-Location::Location(): 
+Location::Location():
 	_path(""),
 	_root(""),
 	_methods(3, false),
@@ -117,4 +117,13 @@ void Location::setCgiPass(std::string const &cgi_pass)
 void Location::setRedirection(std::string const &redirection)
 {
     _redirection = redirection;
+}
+
+bool Location::methodAllowed(const std::string &method) const {
+    (void)method;
+    return false;//todo
+}
+
+std::string Location::getAllowedMethodsField() const {
+    return std::string();
 }
