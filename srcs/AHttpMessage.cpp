@@ -34,3 +34,11 @@ AHttpMessage::parse(const std::string &src, std::size_t &token_start, const std:
     token_start = token_end;
     return true;
 }
+
+std::map<std::string, std::string> &AHttpMessage::getHeaders() {
+    return this->headers;
+}
+
+void AHttpMessage::setHeader(const std::string key, const std::string value) {
+    this->headers[key] = value;
+}

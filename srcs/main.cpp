@@ -15,7 +15,6 @@ void run(const std::string &path_to_file) {
     std::vector<Server *> servers = config->getServers();
 
     if (!servers.empty()) {
-        std::cout << "set sockets" << std::endl;
         std::vector<Server *>::iterator begin;
         std::vector<Server *>::iterator end;
         begin = servers.begin();
@@ -25,8 +24,11 @@ void run(const std::string &path_to_file) {
             Socket *socket;
             int    socket_fd;
 
-            socket    = new Socket((*begin)->getHost(), (*begin)->getPort());
-            socket_fd = socket->getSocketFd();
+//            char      str[INET_ADDRSTRLEN];//todo delete
+//            in_addr_t host = (*begin)->getHost();//todo delete
+//            std::cout << "host: " << inet_ntop(AF_INET, &host, str, INET_ADDRSTRLEN) << " port: " << (*begin)->getPort() << std::endl;//todo delete
+            socket    = new Socket((*begin));
+            socket_fd = socket->getFd();
 
             sockets.insert(std::map<int, Socket *>::value_type(socket_fd, socket));
             events->subscribe(socket_fd, EVFILT_READ);
@@ -36,9 +38,6 @@ void run(const std::string &path_to_file) {
         Daemon daemon(config, sockets, events);
         daemon.run();
     }
-
-    Daemon daemon(config, sockets, events);
-    daemon.run();
 }
 
 int main(int argc, char **argv) {

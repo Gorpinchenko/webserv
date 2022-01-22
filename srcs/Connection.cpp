@@ -1,8 +1,9 @@
 #include "Connection.hpp"
 
 
-Connection::Connection(int socket_fd)
-        : keep_alive(false),
+Connection::Connection(Socket *socket)
+        : server(socket->getServer()),
+          keep_alive(false),
           status(UNUSED),
           connection_timeout(),
           chunk_length(), //todo поменять название или вынести отсюда
@@ -10,11 +11,10 @@ Connection::Connection(int socket_fd)
           skip_n(0) //todo поменять название или вынести отсюда
 {
     std::time(&this->connection_timeout);
-    int             new_fd;
-    struct sockaddr s_addr = {};
-    socklen_t       s_len;
+    int       new_fd;
+    socklen_t s_len;
 
-    new_fd = accept(socket_fd, &s_addr, &s_len);
+    new_fd = accept(socket->getFd(), &s_addr, &s_len);
     if (new_fd < 0) {
         throw ConnectionException(strerror(errno));
     }
@@ -40,7 +40,7 @@ void Connection::parseRequest(size_t bytes_available) {
 //        end();
     }
     this->buffer.append(res);
-    std::cout << this->buffer.data() << std::endl;
+//    std::cout << this->buffer.data() << std::endl;
 
     if (this->request == nullptr) {
         this->request = new HttpRequest();
@@ -50,13 +50,6 @@ void Connection::parseRequest(size_t bytes_available) {
         this->parseRequestMessage(pos);
     } else {
         this->appendBody(pos);
-    }
-    if (this->request->getReady()) {
-        std::cout << *this->request << std::endl;//todo мб сделать запись в консоль
-        if (this->response == nullptr) {
-            this->response = new HttpResponse(static_cast<HttpResponse::HTTPStatus>(this->request->getParsingError()));
-        }
-        this->buffer.clear();
     }
     if (!this->request->getRequestUri().empty()) {
         std::map<std::string, std::string>::const_iterator it;
@@ -71,6 +64,92 @@ void Connection::parseRequest(size_t bytes_available) {
     std::time(&this->connection_timeout);
 }
 
+void Connection::prepareResponse() {
+    if (!this->request->getReady()) {
+        return;
+    }
+    std::cout << "Connection::prepareResponse " << std::endl;
+    this->buffer.clear();
+
+//        std::cout << *this->request << std::endl;//todo мб сделать запись в консоль
+    if (this->response == nullptr) {//todo потом удалить наверно
+//        this->response = new HttpResponse(this->server, static_cast<HttpResponse::HTTPStatus>(this->request->getParsingError()));
+        //TODO мб тут проверять, что нет правил для такого запроса
+        this->response = new HttpResponse(this->server, this->request);
+    }
+
+    this->prepareResponseMessage();
+
+    if (this->keep_alive) {
+        this->response->setHeader("Connection", "Keep-Alive");
+        this->response->setHeader("Keep-Alive", "timeout=" + std::to_string(DEFAULT_TIMEOUT));
+    }
+
+//    if (this->response->getCgi() != nullptr && this->response->getStatusCode() == HttpResponse::HTTP_OK) {
+//        this->status = CGI_PROCESSING;
+//    } else {
+    this->status = SENDING;
+//    }
+}
+
+std::string Connection::getIp() {
+    char ip[INET6_ADDRSTRLEN];
+    inet_ntop(AF_INET, &this->s_addr, ip, sizeof(ip));
+    return std::string(ip);
+}
+
+void Connection::prepareResponseMessage() {
+    if (this->request->getParsingError() != HttpRequest::HTTP_OK) {
+//        this->response->setError(static_cast<HTTPStatus>(this->request->getParsingError()), _config);
+        return;
+    }
+//    if (!_loc->getCgiPass().empty()) {
+//        _cgi = new CgiHandler(mng);
+//        _cgi->prepareCgiEnv(req, req->getNormalizedPath(), ip, std::to_string(_config->getPort()), _loc->getCgiPass());
+//        _cgi->setCgiPath(_loc->getCgiPass());
+//        if (executeCgi(req) != HTTP_OK) {
+//            delete _cgi;
+//            setError(HTTP_INTERNAL_SERVER_ERROR, _config);
+//        }
+//        return false;
+//    }
+    if (this->response->getStatusCode() != HttpRequest::HTTP_OK && this->response->getStatusCode() != 0) {
+        //        this->response->setResponseString("HTTP/1.1", static_cast<HTTPStatus>(_status_code));
+    } else if (this->request->getMethod() == "GET") {
+        this->response->processGetRequest();
+    } else if (this->request->getMethod() == "POST") {
+        this->response->processPostRequest();
+//    } else if (this->request->getMethod() == "DELETE") {
+//        this->request->processDeleteRequest(_config, req);
+    } else if (this->request->getMethod() == "PUT") {
+        this->response->processPutRequest();
+    }
+}
+
+void Connection::processResponse(size_t bytes, bool eof) {
+    std::cout << "Connection::processResponse" << std::endl;
+    int res = 0;
+    if (eof || (res = this->response->send(this->connection_fd, bytes)) == 1) {
+//        std::cout << *this->response;
+        if (!this->keep_alive) {
+            this->status = CLOSING;
+        } else {
+            this->status = AWAIT_NEW_REQ;
+        }
+        if (this->request != nullptr) {
+            delete this->request;
+            this->request = nullptr;
+        }
+        if (this->response != nullptr) {
+            delete this->response;
+            this->response = nullptr;
+        }
+    } else if (res == -1) {
+//        end();
+    }
+    std::time(&this->connection_timeout);
+}
+
 void Connection::parseRequestMessage(size_t &pos) {
     const std::string &buff = this->getBuffer();
     std::cout << "Connection::parseRequestMessage " << std::endl;
@@ -79,7 +158,7 @@ void Connection::parseRequestMessage(size_t &pos) {
      && this->request->parseHeaders(buff, pos)
      && this->request->processUri()
      && this->request->processHeaders()
-     && this->findRouteSetResponse()
+     //     && this->findRouteSetResponse()
      && this->request->checkContentLength());
 
     if (this->request->getParsingError() != HttpResponse::HTTP_OK
@@ -214,8 +293,8 @@ bool Connection::parseChunked(unsigned long &pos, unsigned long bytes) {
     return (false);
 }
 
-bool Connection::findRouteSetResponse() {
-    return true;
+//bool Connection::findRouteSetResponse() {
+//    return true;
 //    VirtualServer *serv = nullptr;
 //    HttpResponse  *resp = nullptr;
 //
@@ -234,7 +313,7 @@ bool Connection::findRouteSetResponse() {
 //        _parsing_error = HttpResponse::HTTP_INTERNAL_SERVER_ERROR;
 //        return (false);
 //    }
-}
+//}
 
 bool Connection::isShouldClose() {
     if ((!this->keep_alive && this->status == AWAIT_NEW_REQ) || this->status == CLOSING) {

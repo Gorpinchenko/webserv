@@ -46,13 +46,13 @@ void Daemon::run() {
                     Connection *connection;
                     int        connection_fd;
 
-                    connection    = new Connection(sub_fd);
+                    connection    = new Connection(dynamic_cast<Socket *>(sub_it->second));
                     connection_fd = connection->getConnectionFd();
                     this->subscriber.insert(std::make_pair(connection_fd, connection));
                     this->connections.insert(std::make_pair(connection_fd, connection));
                     this->events->subscribe(connection_fd, EVFILT_READ);
                 } else if (dynamic_cast<Connection *>(sub_it->second)) {
-//                    std::cout << "Connection " << std::endl;
+                    std::cout << "Connection " << std::endl;
                     Connection *connection = dynamic_cast<Connection *>(sub_it->second);
 //                    connection->parseRequest(event.data);
 
@@ -70,8 +70,8 @@ void Daemon::run() {
 }
 
 void Daemon::processEvent(Connection *connection, int fd, size_t bytes_available, int16_t filter, bool eof) {
-
-    short       status        = connection->getStatus();
+    std::cout << "Daemon::processEvent" << std::endl;
+    short       prev_status   = connection->getStatus();
     int         connection_fd = connection->getConnectionFd();
     HttpRequest *request      = connection->getRequest();
 
@@ -83,30 +83,29 @@ void Daemon::processEvent(Connection *connection, int fd, size_t bytes_available
         this->unsubscribeConnection(connection);
         return;
 //        return end();
-    } else if ((status == AWAIT_NEW_REQ || status == UNUSED) && filter == EVFILT_READ &&
-               fd == connection_fd && bytes_available > 0) {
+    } else if (
+            (connection->getStatus() == Connection::AWAIT_NEW_REQ || connection->getStatus() == Connection::UNUSED) &&
+            filter == EVFILT_READ &&
+            fd == connection_fd && bytes_available > 0) {
         connection->parseRequest(bytes_available);
-        if (connection->getRequest()->getReady()) {
-            std::cout << "requestReady " << std::endl;
-//            prepareResponse();
-        }
+        connection->prepareResponse();
     }
-//        else if (status == CGI_PROCESSING && filter == EVFILT_WRITE &&
+        //        else if (connection->getStatus() == CGI_PROCESSING && filter == EVFILT_WRITE &&
 //               fd == this->response->getCgi()->getRequestPipe()) {
 //        writeCgi(bytes_available, eof);
 //    }
-//        else if (this->status == CGI_PROCESSING && filter == EVFILT_READ &&
+//        else if (connection->getStatus() == CGI_PROCESSING && filter == EVFILT_READ &&
 //               fd == this->response->getCgi()->getResponsePipe()) {
 //        readCgi(bytes_available, eof);
 //    }
-    else if (status == SENDING && filter == EVFILT_WRITE && fd == connection_fd) {
-//        //        processResponse(bytes_available, eof);
+    else if (connection->getStatus() == Connection::SENDING && filter == EVFILT_WRITE && fd == connection_fd) {
+        connection->processResponse(bytes_available, eof);
     }
-//status   = connection->getStatus();
-//    if (prev_status != this->status) {
+//prev_status   = connection->getStatus();
+    if (prev_status != connection->getStatus()) {
 //        //        processPreviousStatus(prev_status);
-//        //        processCurrentStatus(this->status);
-//    }
+//        //        processCurrentStatus(connection->getStatus());
+    }
 }
 
 void Daemon::removeExpiredConnections() {
@@ -120,8 +119,8 @@ void Daemon::removeExpiredConnections() {
 
     for (connection_it = this->connections.begin(); connection_it != this->connections.end();) {
         if (connection_it->second->isShouldClose()) {
-            std::cout << "close Connection " << connection_it->second->getConnectionFd() << std::endl;
-            std::cout << "\033[0;31m" << connection_it->second->getBuffer().data() << "\033[0m" << std::endl;
+//            std::cout << "close Connection " << connection_it->second->getConnectionFd() << std::endl;
+//            std::cout << "\033[0;31m" << connection_it->second->getBuffer().data() << "\033[0m" << std::endl;
             to_delete.push_back(connection_it->second);
         }
         ++connection_it;

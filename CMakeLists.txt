@@ -18,10 +18,11 @@ add_executable(
         srcs/Connection.cpp
         srcs/Location.cpp
         srcs/Daemon.cpp
+        srcs/AHttpMessage.cpp
         srcs/HttpRequest.cpp
         srcs/HttpResponse.cpp
-        srcs/AHttpMessage.cpp
-        srcs/Print.cpp
+        srcs/utils/Print.cpp
+        srcs/utils/Path.cpp
         srcs/main.cpp
 
         srcs/Config.hpp
@@ -31,9 +32,10 @@ add_executable(
         srcs/Connection.hpp
         srcs/Location.hpp
         srcs/Daemon.hpp
+        srcs/AHttpMessage.hpp
         srcs/HttpRequest.hpp
         srcs/HttpResponse.hpp
-        srcs/AHttpMessage.hpp
-        srcs/Print.hpp
+        srcs/utils/Print.hpp
+        srcs/utils/Path.hpp
         srcs/IEventSubscriber.hpp
 )

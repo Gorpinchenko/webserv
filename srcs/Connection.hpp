@@ -11,7 +11,8 @@
 #include "IEventSubscriber.hpp"
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
-#include "Print.hpp"
+#include "utils/Print.hpp"
+#include "Socket.hpp"
 
 class Connection : public IEventSubscriber {
 private:
@@ -19,16 +20,24 @@ private:
     std::string  buffer;
     HttpRequest  *request;
     HttpResponse *response;
+    Server       *server;
 
-    bool          keep_alive;
-    short         status;
-    time_t        connection_timeout;
+    bool            keep_alive;
+    short           status;
+    time_t          connection_timeout;
+    struct sockaddr s_addr;
 //    unsigned long                      _max_body_size;
-    std::string   chunk_length;
-    unsigned long c_bytes_left;
-    short         skip_n;
+    std::string     chunk_length;
+    unsigned long   c_bytes_left;
+    short           skip_n;
 
     static const int DEFAULT_TIMEOUT = 2;
+
+    void parseRequestMessage(size_t &pos);
+    void appendBody(size_t &pos);
+    bool parseChunked(unsigned long &pos, unsigned long bytes);
+//    bool findRouteSetResponse();
+    std::string getIp();
 public:
     enum Status {
         UNUSED         = 0,
@@ -39,7 +48,7 @@ public:
         CLOSING        = 5
     };
 
-    Connection(int socket_fd);
+    Connection(Socket *socket);
 
     int getConnectionFd() const;
     bool getKeepAlive() const;
@@ -50,10 +59,9 @@ public:
 
     void parseRequest(size_t bytes);
     bool isShouldClose();
-    void parseRequestMessage(size_t &pos);
-    void appendBody(size_t &pos);
-    bool parseChunked(unsigned long &pos, unsigned long bytes);
-    bool findRouteSetResponse();
+    void prepareResponse();
+    void prepareResponseMessage();
+    void processResponse(size_t bytes, bool eof);
 
     class ConnectionException : public std::exception {
         const char *m_msg;

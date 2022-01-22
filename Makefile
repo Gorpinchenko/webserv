@@ -4,12 +4,14 @@ SRC_FILES	= main.cpp \
 				Server.cpp \
 				Socket.cpp \
 				Connection.cpp \
+				AHttpMessage.cpp \
 				HttpRequest.cpp \
 				HttpResponse.cpp \
-				AHttpMessage.cpp \
 				Events.cpp \
 				Daemon.cpp \
-				Print.cpp
+				utils/Path.cpp \
+				utils/FileStats.cpp \
+				utils/Print.cpp
 
 NAME	= webserv
 
@@ -37,7 +39,8 @@ $(NAME):	$(OBJS)
 			$(CC) -g $(CFLAGS) -I$(SRCS_DIR) -MMD -MP -o $(NAME) $(OBJS)
 
 clean:
-			@rm -rf $(OBJS_DIR)
+			@rm -rf $(OBJS)
+			@rm -rf $(DEPS)
 
 fclean:		clean
 			@rm $(NAME)

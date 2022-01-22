@@ -22,15 +22,6 @@ private:
     void removeExpiredConnections();
     void unsubscribeConnection(Connection *connection);
 public:
-    enum Status {
-        UNUSED         = 0,
-        AWAIT_NEW_REQ  = 1,
-        CGI_PROCESSING = 2,
-        SENDING        = 3,
-        TIMEOUT        = 4,
-        CLOSING        = 5
-    };
-
     Daemon(Config *config, const std::map<int, Socket *> &sockets, Events *events);
     void run();
     void processEvent(Connection *connection, int fd, size_t bytes_available, int16_t filter, bool eof);

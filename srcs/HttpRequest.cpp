@@ -7,12 +7,12 @@ HttpRequest::HttpRequest()
         request_uri(),
         query_string(),
 //        normalized_path(),
+        absolute_path(),
         http_v("HTTP/1.1"),
         chunked(false),
-        header_fields(),
         body(),
         content_length(0),
-        max_body_size(MAX_DEFAULT_BODY_SIZE),
+        max_body_size(MAX_DEFAULT_BODY_SIZE),//todo нужно брать это значение из конфига
         ready(false),
         parsing_error(HttpResponse::HTTP_OK) {}
 
@@ -57,12 +57,16 @@ unsigned long HttpRequest::getMaxBodySize() const {
     return this->max_body_size;
 }
 
-std::map<std::string, std::string> &HttpRequest::getHeaders() {
-    return this->header_fields;
+const std::string &HttpRequest::getUriNoQuery() const {
+    return this->uri_no_query;
 }
 
-void HttpRequest::setHeader(const std::string key, const std::string value) {
-    this->header_fields[key] = value;
+const std::string &HttpRequest::getMethod() const {
+    return this->method;
+}
+
+const std::string &HttpRequest::getAbsolutPath() const {
+    return this->absolute_path;
 }
 
 bool HttpRequest::headersSent(const std::string &req) {
@@ -149,19 +153,19 @@ bool HttpRequest::processUri() {
 bool HttpRequest::processHeaders() {
     std::map<std::string, std::string>::iterator it;
 
-    it = this->header_fields.find("Transfer-Encoding");
+    it = this->headers.find("Transfer-Encoding");
 
-    if (it == this->header_fields.end()) {
-        it            = this->header_fields.find("Content-Length");
+    if (it == this->headers.end()) {
+        it            = this->headers.find("Content-Length");
 
-        if (it != this->header_fields.end()) {
+        if (it != this->headers.end()) {
             this->content_length = std::strtoul(it->second.data(), nullptr, 10);
             if (errno == ERANGE) {
                 this->parsing_error = HttpResponse::HTTP_REQUEST_ENTITY_TOO_LARGE;
                 return false;
             }
         } else if ((this->method == "POST" || this->method == "PUT") &&
-                   this->header_fields.find("Content-Length") == this->header_fields.end() && !this->getChunked()) {
+                   this->headers.find("Content-Length") == this->headers.end() && !this->getChunked()) {
             this->parsing_error = HttpResponse::HTTP_LENGTH_REQUIRED;
         }
         this->chunked = false;

@@ -6,19 +6,18 @@
 #include <fcntl.h>
 #include <arpa/inet.h>
 #include "IEventSubscriber.hpp"
+#include "Server.hpp"
 
 #define MAX_AWAIT_CONN 900
 
 class Socket : public IEventSubscriber {
 private:
-    in_addr_t ip;
-    uint16_t  port;
-    int       socket_fd;
+    Server *server;
+    int    fd;
 public:
-    Socket(in_addr_t ip, uint16_t port);
-    in_addr_t getIp() const;
-    uint16_t getPort() const;
-    int getSocketFd() const;
+    Socket(Server *server);
+    int getFd() const;
+    Server *getServer() const;
 
     class SocketException : public std::exception {
         const char *m_msg;
