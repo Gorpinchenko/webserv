@@ -155,7 +155,7 @@ public:
 };
 
 template <typename ForwardIt>
-ForwardIt next(
+ForwardIt myNext(
     ForwardIt it, 
     typename std::iterator_traits<ForwardIt>::difference_type n = 1
 )
@@ -165,7 +165,7 @@ ForwardIt next(
 }
 
 template <typename ForwardIt>
-ForwardIt prev(
+ForwardIt myPrev(
     ForwardIt it, 
     typename std::iterator_traits<ForwardIt>::difference_type n = -1
 )

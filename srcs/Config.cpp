@@ -135,7 +135,7 @@ void Config::parseServerData(iterator value)
                 error + " in " + _path_to_file
             );
         }
-        if (next(value) == _config.end())
+        if (myNext(value) == _config.end())
         {
             delete server;
             throw Config::ConfigException("incorrect syntax in " + _path_to_file);
@@ -237,9 +237,9 @@ void Config::parseListen(IDirective *server, iterator &value)
     }
     this->checkServerDirective(server);
     ((Server *)server)->setHost(inet_addr((*value).data()));
-    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
-        throw std::string(*(prev(value)) + " " + *value + " ->;");
+        throw std::string(*(myPrev(value)) + " " + *value + " ->;");
     }
     value++;
 }
@@ -252,9 +252,9 @@ void Config::parsePort(IDirective *server, iterator &value)
     }
     this->checkServerDirective(server);
     ((Server *)server)->setPort((uint16_t) atoll((*value).c_str()));
-    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
-        throw std::string(*(prev(value)) + " " + *value + " ->;");
+        throw std::string(*(myPrev(value)) + " " + *value + " ->;");
     }
     value++;
 }
@@ -267,9 +267,9 @@ void Config::parseServerName(IDirective *server, iterator &value)
     }
     this->checkServerDirective(server);
     ((Server *)server)->setServerName(*value);
-    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
-        throw std::string(*(prev(value)) + " " + *value + " ->;");
+        throw std::string(*(myPrev(value)) + " " + *value + " ->;");
     }
     value++;
 }
@@ -282,9 +282,9 @@ void Config::parseClientMaxBodySize(IDirective *server, iterator &value)
     }
     this->checkServerDirective(server);
     ((Server *)server)->setClientMaxBodySize(atoll((*value).c_str()) * 1000000);
-    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
-        throw std::string(*(prev(value)) + " " + *value + " ->;");
+        throw std::string(*(myPrev(value)) + " " + *value + " ->;");
     }
     value++;
 }
@@ -297,9 +297,9 @@ void Config::parseMimeConfPath(IDirective *server, iterator &value)
     }
     this->checkServerDirective(server);
     ((Server *)server)->setMimeConfPath(*value);
-    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
-        throw std::string(*(prev(value)) + " " + *value + " ->;");
+        throw std::string(*(myPrev(value)) + " " + *value + " ->;");
     }
     value++;
 }
@@ -315,9 +315,9 @@ void Config::parseErrorPages(IDirective *server, iterator &value)
         (short) std::atoi((*value).c_str()), 
         *(++value))
     );
-    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
-        throw std::string(*(prev(value)) + " " + *value + " ->;");
+        throw std::string(*(myPrev(value)) + " " + *value + " ->;");
     }
     value++;
 }
@@ -357,7 +357,7 @@ void Config::parseLocation(IDirective *server, iterator &value)
                 error + " in " + _path_to_file
             );
         }
-        if (next(value) == _config.end())
+        if (myNext(value) == _config.end())
         {
             delete location;
             throw Config::ConfigException("incorrect syntax in " + _path_to_file);
@@ -377,9 +377,9 @@ void Config::parseRedirection(IDirective *server, iterator &value)
     }
     this->checkLocationDirective(server);
     ((Location *)server)->setRedirection(*value);
-    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
-        throw std::string(*(prev(value)) + " " + *value + " ->;");
+        throw std::string(*(myPrev(value)) + " " + *value + " ->;");
     }
     value++;
 }
@@ -392,9 +392,9 @@ void Config::parseRoot(IDirective *server, iterator &value)
     }
     this->checkLocationDirective(server);
     ((Location *)server)->setRoot(*value);
-    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
-        throw std::string(*(prev(value)) + " " + *value + " ->;");
+        throw std::string(*(myPrev(value)) + " " + *value + " ->;");
     }
     value++;
 }
@@ -410,15 +410,15 @@ void Config::parseMethods(IDirective *server, iterator &value)
     while (value != _config.end())
     {
         ((Location *)server)->setMethod(_getMethodIndex(_methods, *value), true);
-        if (*(next(value)) == ";")
+        if (*(myNext(value)) == ";")
         {
             break;
         }
         value++;
     }
-    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
-        throw std::string(*(prev(value)) + " " + *value + " ->;");
+        throw std::string(*(myPrev(value)) + " " + *value + " ->;");
     }
     value++;
 }
@@ -431,9 +431,9 @@ void Config::parseFileUpload(IDirective *server, iterator &value)
     }
     this->checkLocationDirective(server);
     ((Location *)server)->setFileUpload(*value == "on" ? true : false);
-    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
-        throw std::string(*(prev(value)) + " " + *value + " ->;");
+        throw std::string(*(myPrev(value)) + " " + *value + " ->;");
     }
     value++;
 }
@@ -446,9 +446,9 @@ void Config::parseUploadTmpPath(IDirective *server, iterator &value)
     }
     this->checkLocationDirective(server);
     ((Location *)server)->setUploadTmpPath(*value);
-    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
-        throw std::string(*(prev(value)) + " " + *value + " ->;");
+        throw std::string(*(myPrev(value)) + " " + *value + " ->;");
     }
     value++;
 }
@@ -461,9 +461,9 @@ void Config::parseIndex(IDirective *server, iterator &value)
     }
     this->checkLocationDirective(server);
     ((Location *)server)->setIndex(*value);
-    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
-        throw std::string(*(prev(value)) + " " + *value + " ->;");
+        throw std::string(*(myPrev(value)) + " " + *value + " ->;");
     }
     value++;
 }
@@ -476,9 +476,9 @@ void Config::parseAutoindex(IDirective *server, iterator &value)
     }
     this->checkLocationDirective(server);
     ((Location *)server)->setAutoindex(*value == "on" ? true : false);
-    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
-        throw std::string(*(prev(value)) + " " + *value + " ->;");
+        throw std::string(*(myPrev(value)) + " " + *value + " ->;");
     }
     value++;
 }
@@ -487,9 +487,9 @@ void Config::parseCgiPass(IDirective *server, iterator &value)
 {
     this->checkLocationDirective(server);
     ((Location *)server)->setCgiPass(*value);
-    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
-        throw std::string(*(prev(value)) + " " + *value + " ->;");
+        throw std::string(*(myPrev(value)) + " " + *value + " ->;");
     }
     value++;
 }
