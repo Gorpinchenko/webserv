@@ -4,12 +4,13 @@
 Location::Location(): 
 	_path(""),
 	_root(""),
-	_methods(4, false),
+	_methods(3, false),
 	_file_upload(false),
 	_upload_tmp_path(""),
 	_index(""),
 	_autoindex(false),
-	_cgi_pass("")
+	_cgi_pass(""),
+	_redirection("")
 {
 	// default GET
 	_methods[0] = true;
@@ -56,6 +57,11 @@ bool Location::getAutoindex() const
 std::string Location::getCgiPass() const
 {
 	return _cgi_pass;
+}
+
+std::string Location::getRedirection() const
+{
+    return _redirection;
 }
 
 void Location::setPath(std::string const &path)
@@ -106,4 +112,9 @@ void Location::setAutoindex(bool autoindex)
 void Location::setCgiPass(std::string const &cgi_pass)
 {
 	_cgi_pass = cgi_pass;
+}
+
+void Location::setRedirection(std::string const &redirection)
+{
+    _redirection = redirection;
 }

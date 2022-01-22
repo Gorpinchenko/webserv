@@ -13,21 +13,92 @@
 # include "Server.hpp"
 # include "IDirective.hpp"
 
-class Config
+struct config_base
+{
+public:
+    std::vector<std::string> _methods;
+    std::vector<std::string> _directs;
+
+    config_base()
+    : _methods(), _directs()
+    {
+        _methods.push_back("GET");
+        _methods.push_back("POST");
+        _methods.push_back("DELETE");
+
+        _directs.push_back("listen");
+        _directs.push_back("port");
+        _directs.push_back("server_name");
+        _directs.push_back("client_max_body_size");
+        _directs.push_back("mime_conf_path");
+        _directs.push_back("error_page");
+        _directs.push_back("location");
+        _directs.push_back("return");
+        _directs.push_back("root");
+        _directs.push_back("methods");
+        _directs.push_back("file_upload");
+        _directs.push_back("upload_tmp_path");
+        _directs.push_back("index");
+        _directs.push_back("autoindex");
+        _directs.push_back("cgi_pass");
+    }
+};
+
+template <typename T>
+int _getMethodIndex(std::vector<T> methods, T const &method)
+{
+    typename std::vector<T>::iterator itr;
+
+    itr = std::find(methods.begin(), methods.end(), method);
+    if (itr == methods.end())
+    {
+        throw "method not supported";
+    }
+    return std::distance(methods.begin(), itr);
+}
+
+template <typename T>
+int _getDirectIndex(std::vector<T> directs, T const &direct)
+{
+    typename std::vector<T>::iterator itr;
+
+    itr = std::find(directs.begin(), directs.end(), direct);
+    if (itr == directs.end())
+    {
+        throw "directive not supported";
+    }
+    return std::distance(directs.begin(), itr);
+}
+
+class Config: public config_base
 {
 private:
-    std::string _path_to_file;
-    std::vector<Server *> _servers;
-    void parse(const std::string &path_to_file);
+    typedef config_base         base;
+
+    std::string                 _path_to_file;
+    std::vector<std::string>    _config;
+    std::vector<Server *>       _servers;
+    in_addr_t                   _default_host;
+    uint16_t                    _default_port;
 
     Config &operator=(const Config &other);
     Config(const Config &other);
 
+    void parse(const std::string &path_to_file);
+
 public:
+    typedef std::vector<std::string>::iterator  iterator;
+    using                                       base::_methods;
+    using                                       base::_directs;
+
     Config(const std::string &path_to_file);
     ~Config();
 
     const std::vector<Server *> &getServers() const;
+    in_addr_t getDefaultHost() const;
+    uint16_t getDefaultPort() const;
+
+    void setDefault(Server *server);
 
     class ConfigException : public std::exception
     {
@@ -44,87 +115,64 @@ public:
 
     bool isDirectiveLine(std::string const &str) const;
 
-    void parseServerData(
-        std::vector<std::string>::iterator begin,
-        std::vector<std::string>::iterator end);
+    void parseServerData(iterator value);
 
     void checkTrashDirective(std::string const &name) const;
 
-    void parseListen(
-        IDirective *server,
-        std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator &end);
+    void parseListen(IDirective *server, iterator &value);
 
-    void parsePort(
-        IDirective *server,
-        std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator &end);
+    void parsePort(IDirective *server, iterator &value);
 
-    void parseServerName(
-        IDirective *server,
-        std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator &end);
+    void parseServerName(IDirective *server, iterator &value);
 
-    void parseClientMaxBodySize(
-        IDirective *server,
-        std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator &end);
+    void parseClientMaxBodySize(IDirective *server, iterator &value);
 
-    void parseMimeConfPath(
-        IDirective *server,
-        std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator &end);
+    void parseMimeConfPath(IDirective *server, iterator &value);
 
-    void parseErrorPages(
-        IDirective *server,
-        std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator &end);
+    void parseErrorPages(IDirective *server, iterator &value);
 
-    void parseLocation(
-        IDirective *server,
-        std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator &end);
+    void parseLocation(IDirective *server, iterator &value);
 
-    void parseRedirection(
-        IDirective *server,
-        std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator &end);
+    void parseRedirection(IDirective *server, iterator &value);
 
-    void parseRoot(
-        IDirective *server,
-        std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator &end);
+    void parseRoot(IDirective *server, iterator &value);
 
-    void parseMethods(
-        IDirective *server,
-        std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator &end);
+    void parseMethods(IDirective *server, iterator &value);
 
-    void parseFileUpload(
-        IDirective *server,
-        std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator &end);
+    void parseFileUpload(IDirective *server, iterator &value);
 
-    void parseUploadTmpPath(
-        IDirective *server,
-        std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator &end);
+    void parseUploadTmpPath(IDirective *server, iterator &value);
 
-    void parseIndex(
-        IDirective *server,
-        std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator &end);
+    void parseIndex(IDirective *server, iterator &value);
 
-    void parseAutoindex(
-        IDirective *server,
-        std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator &end);
+    void parseAutoindex(IDirective *server, iterator &value);
 
-    void parseCgiPass(
-        IDirective *server,
-        std::vector<std::string>::iterator &value,
-        std::vector<std::string>::iterator &end);
+    void parseCgiPass(IDirective *server, iterator &value);
+
+    void checkLocationDirective(IDirective *directive);
+
+    void checkServerDirective(IDirective *directive);
 };
+
+template <typename ForwardIt>
+ForwardIt next(
+    ForwardIt it, 
+    typename std::iterator_traits<ForwardIt>::difference_type n = 1
+)
+{
+    std::advance(it, n);
+    return it;
+}
+
+template <typename ForwardIt>
+ForwardIt prev(
+    ForwardIt it, 
+    typename std::iterator_traits<ForwardIt>::difference_type n = -1
+)
+{
+    std::advance(it, n);
+    return it;
+}
 
 
 #endif //WEBSERV_CONFIG_HPP

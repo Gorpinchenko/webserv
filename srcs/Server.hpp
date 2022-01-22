@@ -18,7 +18,6 @@ private:
     std::map<short, std::string>        _error_pages;
     std::vector<Location *>             _locations;
     unsigned long                       _client_max_body_size;
-    std::string                         _redirection;
 
     Server(const Server &a);
     Server &operator=(const Server &a);
@@ -33,7 +32,6 @@ public:
     std::string getMimeConfPath() const;
     std::map<short, std::string> getErrorPages() const;
     std::vector<Location *> getLocations() const;
-    std::string getRedirection() const;
 
     void setHost(in_addr_t host);
     void setPort(uint16_t host);
@@ -44,7 +42,6 @@ public:
     void setErrorPage(std::pair<short, std::string> error_page);
     void setLocations(std::vector<Location *> locations);
     void setLocation(Location *location);
-    void setRedirection(std::string const &redirection);
 };
 
 

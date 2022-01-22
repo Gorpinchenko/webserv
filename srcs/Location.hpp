@@ -16,6 +16,7 @@ private:
 	std::string       	_index;
 	bool              	_autoindex;
 	std::string			_cgi_pass;
+	std::string         _redirection;
 
 	Location(Location const &a);
 	Location &operator=(Location const &a);
@@ -31,6 +32,7 @@ public:
 	std::string getIndex() const;
 	bool getAutoindex() const;
 	std::string getCgiPass() const;
+	std::string getRedirection() const;
 
 	void setPath(std::string const &path);
 	void setRoot(std::string const &root);
@@ -42,6 +44,7 @@ public:
 	void setIndex(std::string const &index);
 	void setAutoindex(bool autoindex);
 	void setCgiPass(std::string const &cgi_pass);
+	void setRedirection(std::string const &redirection);
 };
 
 

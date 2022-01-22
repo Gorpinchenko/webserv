@@ -1,40 +1,9 @@
 #include "Config.hpp"
 
-//  Проверка на существование
-//  Парсинг в вектор
-//  Парсинг отдельных элементов
-//  
-
-std::string directives[16] = {
-    "listen",
-    "port",
-    "server_name",
-    "client_max_body_size",
-    "mime_conf_path",
-    "error_page",
-    "location",
-    "return",
-    "root",
-    "methods",
-    "file_upload",
-    "upload_tmp_path",
-    "index",
-    "autoindex",
-    "cgi_pass",
-    "server", // пока хз, мб проще выпилить
-};
-
-std::string methods[4] = {
-    "GET",
-    "POST",
-    "DELETE",
-    "PUT"
-};
-
 void (Config::*parseDirective[15])(
     IDirective *server,
-    std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator &end) = {
+    Config::iterator &value
+) = {
     &Config::parseListen,
     &Config::parsePort,
     &Config::parseServerName,
@@ -53,7 +22,7 @@ void (Config::*parseDirective[15])(
 };
 
 Config::Config(const std::string &path_to_file)
-: _path_to_file(path_to_file)
+: _path_to_file(path_to_file), _config()
 {
     if (access(path_to_file.c_str(), F_OK) == -1)
         throw Config::ConfigException("config file " + path_to_file + " not found");
@@ -76,7 +45,6 @@ void Config::parse(const std::string &path_to_file)
 {
     std::string line;
     std::ifstream file(path_to_file.c_str());
-    std::vector<std::string> _config;
     std::string token;
 
     if (!file.is_open())
@@ -98,7 +66,7 @@ void Config::parse(const std::string &path_to_file)
         std::vector<std::string> tokens(
             (std::istream_iterator<std::string>(iss)),
             std::istream_iterator<std::string>());
-        std::vector<std::string>::iterator token;
+        iterator token;
         // check trash derective
         if (tokens.size() > 0)
         {
@@ -121,52 +89,82 @@ void Config::parse(const std::string &path_to_file)
         }
     }
     file.close();
-    this->parseServerData(_config.begin(), _config.end());
+    this->parseServerData(_config.begin());
 }
 
-void Config::parseServerData(
-    std::vector<std::string>::iterator begin,
-    std::vector<std::string>::iterator end)
+void Config::parseServerData(iterator value)
 {
-    int length;
-    std::string *str;
-
-    if (begin == end)
+    if (value == _config.end())
+    {
         return ;
-    if (*begin != "server" || *(++begin) != "{")
-        throw Config::ConfigException("invalid number of arguments in server directive in" + _path_to_file);
-    ++begin;
+    }
+    if (value == _config.end() || *(value++) != "server")
+    {
+        throw Config::ConfigException(
+            "invalid number of arguments in server directive in" + _path_to_file
+        );   
+    }
+    if (value == _config.end() || *(value++) != "{")
+    {
+        throw Config::ConfigException(
+            "invalid number of arguments in server directive in" + _path_to_file
+        );
+    }
 
     Server *server = new Server();
 
-    while (begin != end && *begin != "}")
+    while (value != _config.end() && *value != "}")
     {
-        length = sizeof(directives) / sizeof(directives[0]);
-        str = std::find(directives, directives + length, *begin);
-
-        if (
-            str != directives + length &&
-            str - directives < static_cast<long>(
-                sizeof(parseDirective) / sizeof(parseDirective[0])))
+        try
         {
-            ++begin;
-            (this->*parseDirective[(int)(str - directives)])(server, begin, end);
+            (this->*parseDirective[_getDirectIndex(_directs, *value)])(server, ++value);
+        } 
+        catch(char const *error)
+        {
+            delete server;
+            throw Config::ConfigException(
+                "error in server directive: " + std::string(error)  + 
+                " in " + _path_to_file
+            );
         }
-        // else
-        // {
-        //     throw Config::ConfigException("invalid number of arguments in server directive in " + _path_to_file);
-        // }
-        begin++;
+        catch(std::string &error)
+        {
+            delete server;
+            throw Config::ConfigException(
+                "error in server directive: expected \';\' near " + 
+                error + " in " + _path_to_file
+            );
+        }
+        if (next(value) == _config.end())
+        {
+            delete server;
+            throw Config::ConfigException("incorrect syntax in " + _path_to_file);
+        }
+        value++;
     }
+    if (value == _config.end() || *value != "}")
+    {
+        delete server;
+        throw Config::ConfigException("incorrect syntax in " + _path_to_file);   
+    }
+    this->setDefault(server);
     _servers.push_back(server);
-    if (begin != end)
-        begin++;
-    this->parseServerData(begin, end);
+    this->parseServerData(++value);
 }
 
 const std::vector<Server *> &Config::getServers() const
 {
-    return this->_servers;
+    return _servers;
+}
+
+in_addr_t Config::getDefaultHost() const
+{
+    return _default_host;
+}
+
+uint16_t Config::getDefaultPort() const
+{
+    return _default_port;
 }
 
 Config::ConfigException::ConfigException()
@@ -215,238 +213,308 @@ bool Config::isDirectiveLine(std::string const &str) const
 
 void Config::checkTrashDirective(std::string const &name) const
 {
-    int length = sizeof(directives)/sizeof(directives[0]);
-    std::string *str;
-
-    if (name != "{" && name != "}" && name != ";")
+    if (name != "{" && name != "}" && 
+        name != ";" && name != "server")
     {
-
-        str = std::find(directives, directives + length, name);
-        if (str == directives + length)
+        try
+        {
+            _getDirectIndex(_directs, name);
+        }
+        catch (const char *error)
         {
             throw Config::ConfigException(
-                "unknown directive " + name + " in " + _path_to_file); 
+                "unknown directive " + name + " in " + _path_to_file
+            );
         }
     }
 }
 
-void Config::parseListen(
-    IDirective *server,
-    std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator &end)
+void Config::parseListen(IDirective *server, iterator &value)
 {
-    (void)end;
-    if (dynamic_cast<Location *>(server))
-        throw Config::ConfigException();
+    if (value == _config.end())
+    {
+        throw "not correct directive in port";
+    }
+    this->checkServerDirective(server);
     ((Server *)server)->setHost(inet_addr((*value).data()));
+    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    {
+        throw std::string(*(prev(value)) + " " + *value + " ->;");
+    }
+    value++;
 }
 
-void Config::parsePort(
-    IDirective *server,
-    std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator &end)
+void Config::parsePort(IDirective *server, iterator &value)
 {
-    (void)end;
-    if (dynamic_cast<Location *>(server))
-        throw Config::ConfigException();
+    if (value == _config.end())
+    {
+        throw "not correct directive in port";
+    }
+    this->checkServerDirective(server);
     ((Server *)server)->setPort((uint16_t) atoll((*value).c_str()));
+    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    {
+        throw std::string(*(prev(value)) + " " + *value + " ->;");
+    }
+    value++;
 }
 
-void Config::parseServerName(
-    IDirective *server,
-    std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator &end)
+void Config::parseServerName(IDirective *server, iterator &value)
 {
-    (void)end;
-    if (dynamic_cast<Location *>(server))
-        throw Config::ConfigException();
+    if (value == _config.end())
+    {
+        throw "not correct directive in server_name";
+    }
+    this->checkServerDirective(server);
     ((Server *)server)->setServerName(*value);
+    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    {
+        throw std::string(*(prev(value)) + " " + *value + " ->;");
+    }
+    value++;
 }
 
-void Config::parseClientMaxBodySize(
-    IDirective *server,
-    std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator &end)
+void Config::parseClientMaxBodySize(IDirective *server, iterator &value)
 {
-    (void)end;
-    if (dynamic_cast<Location *>(server))
-        throw Config::ConfigException();
+    if (value == _config.end())
+    {
+        throw "not correct directive in client_max_body_size";
+    }
+    this->checkServerDirective(server);
     ((Server *)server)->setClientMaxBodySize(atoll((*value).c_str()) * 1000000);
+    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    {
+        throw std::string(*(prev(value)) + " " + *value + " ->;");
+    }
+    value++;
 }
 
-void Config::parseMimeConfPath(
-    IDirective *server,
-    std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator &end)
+void Config::parseMimeConfPath(IDirective *server, iterator &value)
 {
-    (void)end;
-    if (dynamic_cast<Location *>(server))
-        throw Config::ConfigException();
+    if (value == _config.end())
+    {
+        throw "not correct directive in mime_conf_path";
+    }
+    this->checkServerDirective(server);
     ((Server *)server)->setMimeConfPath(*value);
+    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    {
+        throw std::string(*(prev(value)) + " " + *value + " ->;");
+    }
+    value++;
 }
 
-void Config::parseErrorPages(
-    IDirective *server,
-    std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator &end)
+void Config::parseErrorPages(IDirective *server, iterator &value)
 {
-    (void)end;
-    if (dynamic_cast<Location *>(server))
-        throw Config::ConfigException();
-    short code = (short) std::atoi((*value).c_str());
-    ++value;
-    ((Server *)server)->setErrorPage(std::make_pair(code, *value));
+    if (value == _config.end())
+    {
+        throw "not correct directive in error_page";
+    }
+    this->checkServerDirective(server);
+    ((Server *)server)->setErrorPage(std::make_pair(
+        (short) std::atoi((*value).c_str()), 
+        *(++value))
+    );
+    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    {
+        throw std::string(*(prev(value)) + " " + *value + " ->;");
+    }
+    value++;
 }
 
-void Config::parseLocation(
-    IDirective *server,
-    std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator &end)
+void Config::parseLocation(IDirective *server, iterator &value)
 {
-    int length;
-    std::string *str;
     std::string path = *value;
 
-    if (*(++value) != "{")
+    if (++value == _config.end() || *(value++) != "{")
+    {
         throw Config::ConfigException(
-            "invalid number of arguments in location directive in " + _path_to_file);
-    ++value;
+            "invalid number of arguments in location directive in " + _path_to_file
+        );
+    }
 
     Location *location = new Location();
-
-    while (*value != "}")
+    
+    while (value != _config.end() && *value != "}")
     {
-        length = sizeof(directives) / sizeof(directives[0]);
-        str = std::find(directives, directives + length, *value);
-
-        if (
-            str != directives + length &&
-            str - directives < static_cast<long>(
-                sizeof(parseDirective) / sizeof(parseDirective[0])))
+        try
         {
-
-            try
-            {
-                ++value;
-                (this->*parseDirective[(int)(str - directives)])(location, value, end);
-            }
-            catch(...)
-            {
-                throw Config::ConfigException(
-                    "unknown location directive " + *str  + " in " + _path_to_file);
-            }
+            (this->*parseDirective[_getDirectIndex(_directs, *value)])(location, ++value);
+        } 
+        catch(char const *error)
+        {
+            delete location;
+            throw Config::ConfigException(
+                "error in location directive: " + std::string(error)  + 
+                " in " + _path_to_file
+            );
         }
-        // else
-        // {
-        //     throw Config::ConfigException("invalid number of arguments in server directive in " + _path_to_file);
-        // }
+        catch(std::string &error)
+        {
+            delete server;
+            throw Config::ConfigException(
+                "error in location directive: expected \';\' near " + 
+                error + " in " + _path_to_file
+            );
+        }
+        if (next(value) == _config.end())
+        {
+            delete location;
+            throw Config::ConfigException("incorrect syntax in " + _path_to_file);
+        }
         value++;
     }
+
     location->setPath(path);
     ((Server *)server)->setLocation(location);
 }
 
-void Config::parseRedirection(
-    IDirective *server,
-    std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator &end)
+void Config::parseRedirection(IDirective *server, iterator &value)
 {
-    (void)end;
-    if (dynamic_cast<Location *>(server))
-        throw Config::ConfigException();
-    ((Server *)server)->setRedirection(*value);
-}
-
-void Config::parseRoot(
-    IDirective *server,
-    std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator &end)
-{
-    (void)end;
-    ((Location *)server)->setRoot(*value);
-}
-
-void Config::parseMethods(
-    IDirective *server,
-    std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator &end)
-{
-    (void)end;
-    while (*value != ";")
+    if (value == _config.end())
     {
-        int length = sizeof(methods) / sizeof(methods[0]);
-        std::string *str = std::find(methods, methods + length, *value);
+        throw "not correct directive in return";
+    }
+    this->checkLocationDirective(server);
+    ((Location *)server)->setRedirection(*value);
+    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    {
+        throw std::string(*(prev(value)) + " " + *value + " ->;");
+    }
+    value++;
+}
 
-        if (str != methods + length)
+void Config::parseRoot(IDirective *server, iterator &value)
+{
+    if (value == _config.end())
+    {
+        throw "not correct directive in root";
+    }
+    this->checkLocationDirective(server);
+    ((Location *)server)->setRoot(*value);
+    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    {
+        throw std::string(*(prev(value)) + " " + *value + " ->;");
+    }
+    value++;
+}
+
+void Config::parseMethods(IDirective *server, iterator &value)
+{
+    if (value == _config.end())
+    {
+        throw "not correct directive in methods";
+    }
+    this->checkLocationDirective(server);
+    ((Location *)server)->setMethod(0, false);
+    while (value != _config.end())
+    {
+        ((Location *)server)->setMethod(_getMethodIndex(_methods, *value), true);
+        if (*(next(value)) == ";")
         {
-            ((Location *)server)->setMethod((int)(str - methods), true);
-        }
-        else
-        {
-            throw Config::ConfigException("method not supported in " + _path_to_file);
+            break;
         }
         value++;
     }
-    --value;
+    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    {
+        throw std::string(*(prev(value)) + " " + *value + " ->;");
+    }
+    value++;
 }
 
-void Config::parseFileUpload(
-    IDirective *server,
-    std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator &end)
+void Config::parseFileUpload(IDirective *server, iterator &value)
 {
-    (void)end;
-    bool file_upload;
-
-    if (*value == "on")
-        file_upload = true;
-    else
-        file_upload = false;
-    // exception
-    // 
-    ((Location *)server)->setFileUpload(file_upload);
+    if (value == _config.end() || !(*value == "on" || *value == "off"))
+    {
+        throw "not correct directive in file_upload";
+    }
+    this->checkLocationDirective(server);
+    ((Location *)server)->setFileUpload(*value == "on" ? true : false);
+    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    {
+        throw std::string(*(prev(value)) + " " + *value + " ->;");
+    }
+    value++;
 }
 
-void Config::parseUploadTmpPath(
-    IDirective *server,
-    std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator &end)
+void Config::parseUploadTmpPath(IDirective *server, iterator &value)
 {
-    (void)end;
+    if (value == _config.end())
+    {
+        throw "not correct directive in upload_tmp_path";
+    }
+    this->checkLocationDirective(server);
     ((Location *)server)->setUploadTmpPath(*value);
+    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    {
+        throw std::string(*(prev(value)) + " " + *value + " ->;");
+    }
+    value++;
 }
 
-void Config::parseIndex(
-    IDirective *server,
-    std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator &end)
+void Config::parseIndex(IDirective *server, iterator &value)
 {
-    (void)end;
+    if (value == _config.end())
+    {
+        throw "not correct directive in index";
+    }
+    this->checkLocationDirective(server);
     ((Location *)server)->setIndex(*value);
+    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    {
+        throw std::string(*(prev(value)) + " " + *value + " ->;");
+    }
+    value++;
 }
 
-void Config::parseAutoindex(
-    IDirective *server,
-    std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator &end)
+void Config::parseAutoindex(IDirective *server, iterator &value)
 {
-    (void)end;
-    bool autoindex;
-
-    if (*value == "on")
-        autoindex = true;
-    else
-        autoindex = false;
-    // exception
-    // 
-    ((Location *)server)->setAutoindex(autoindex);
+    if (value == _config.end() || !(*value == "on" || *value == "off"))
+    {
+        throw "not correct directive in autoindex";
+    }
+    this->checkLocationDirective(server);
+    ((Location *)server)->setAutoindex(*value == "on" ? true : false);
+    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    {
+        throw std::string(*(prev(value)) + " " + *value + " ->;");
+    }
+    value++;
 }
 
-void Config::parseCgiPass(
-    IDirective *server,
-    std::vector<std::string>::iterator &value,
-    std::vector<std::string>::iterator &end)
+void Config::parseCgiPass(IDirective *server, iterator &value)
 {
-    (void)end;
+    this->checkLocationDirective(server);
     ((Location *)server)->setCgiPass(*value);
+    if (!(next(value) != _config.end() && *(next(value)) == ";"))
+    {
+        throw std::string(*(prev(value)) + " " + *value + " ->;");
+    }
+    value++;
+}
+
+void Config::checkLocationDirective(IDirective *directive)
+{
+    if (!dynamic_cast<Location *>(directive))
+    {
+        throw "method not supported in location directive";
+    }
+}
+
+void Config::checkServerDirective(IDirective *directive)
+{
+    if (!dynamic_cast<Server *>(directive))
+    {
+        throw "method not supported in server directive";
+    }
+}
+
+void Config::setDefault(Server *server)
+{
+    if (!_servers.size())
+    {
+        _default_host = server->getHost();
+        _default_port = server->getPort();
+    }
 }

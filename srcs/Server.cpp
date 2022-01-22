@@ -8,8 +8,7 @@ Server::Server():
     _mime_conf_path(""),
     _error_pages(),
     _locations(),
-    _client_max_body_size(1000000000),
-    _redirection("")
+    _client_max_body_size(1000000000)
 {}
 
 Server::~Server()
@@ -59,11 +58,6 @@ std::vector<Location *> Server::getLocations() const
     return _locations;
 }
 
-std::string Server::getRedirection() const
-{
-    return _redirection;
-}
-
 void Server::setHost(in_addr_t host)
 {
     _host = host;
@@ -107,9 +101,4 @@ void Server::setLocations(std::vector<Location *> locations)
 void Server::setLocation(Location * location)
 {
     _locations.push_back(location);   
-}
-
-void Server::setRedirection(std::string const &redirection)
-{
-    _redirection = redirection;
 }
