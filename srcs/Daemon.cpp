@@ -36,7 +36,7 @@ void Daemon::run() {
             sub_fd = static_cast<int> (event.ident);
             sub_it = this->subscriber.find(sub_fd);
 
-            if (event.flags & EV_ERROR) {   /* report any error */
+            if (event.flags & EV_ERROR) {
                 fprintf(stderr, "EV_ERROR: %s\n", strerror(static_cast<int>(event.data)));//todo мб это можно удалить
             }
 
@@ -44,33 +44,23 @@ void Daemon::run() {
                 if (dynamic_cast<Socket *>(sub_it->second)) {
 //                    std::cout << "Socket " << std::endl;
                     Connection *connection;
-                    int        connection_fd;
 
-                    connection    = new Connection(dynamic_cast<Socket *>(sub_it->second));
-                    connection_fd = connection->getConnectionFd();
-                    this->subscriber.insert(std::make_pair(connection_fd, connection));
-                    this->connections.insert(std::make_pair(connection_fd, connection));
-                    this->events->subscribe(connection_fd, EVFILT_READ);
+                    connection = new Connection(dynamic_cast<Socket *>(sub_it->second));
+                    this->subscribe(connection, EVFILT_READ);
                 } else if (dynamic_cast<Connection *>(sub_it->second)) {
 //                    std::cout << "Connection " << std::endl;
                     Connection *connection = dynamic_cast<Connection *>(sub_it->second);
-//                    connection->parseRequest(event.data);
 
                     this->processEvent(connection, sub_fd, event.data, event.filter, (event.flags & EV_EOF));
-//                    std::string res = "HTTP/1.1 200 OK\nDate: Mon, 27 Jul 2009 12:28:53 GMT\nServer: Apache/2.2.14 (Win32)\nLast-Modified: Wed, 22 Jul 2009 19:15:56 GMT\nContent-Length: 11\nContent-Type: text/html\nConnection: Closed\n\nhello world";
-//                    send(sub_fd, res.data(), res.size(), 0);
-//                    close(sub_fd);
                 }
             }
             ++i;
         }
-//        std::cout << "Events count:  " << this->events->getFds().size() << std::endl;
         this->removeExpiredConnections();
     }
 }
 
 void Daemon::processEvent(Connection *connection, int fd, size_t bytes_available, int16_t filter, bool eof) {
-//    std::cout << "Daemon::processEvent" << std::endl;
     short       prev_status   = connection->getStatus();
     int         connection_fd = connection->getConnectionFd();
     HttpRequest *request      = connection->getRequest();
@@ -80,19 +70,15 @@ void Daemon::processEvent(Connection *connection, int fd, size_t bytes_available
         (filter == EVFILT_WRITE ||
          (filter == EVFILT_READ && (request == nullptr || !request->getReady()))
         )) {
-        std::cout << "Daemon::processEvent 1" << std::endl;
-        this->unsubscribeConnection(connection);
-        return;
+        this->unsubscribe(connection_fd, EVFILT_READ);
 //        return end();
+        return;
     } else if (
             (connection->getStatus() == Connection::AWAIT_NEW_REQ || connection->getStatus() == Connection::UNUSED) &&
             filter == EVFILT_READ &&
             fd == connection_fd && bytes_available > 0) {
-        std::cout << "Daemon::processEvent 2" << std::endl;
         connection->parseRequest(bytes_available);
-        std::cout << "Daemon::processEvent 22" << std::endl;
         connection->prepareResponse();
-        std::cout << "Daemon::processEvent 22-2" << std::endl;
     }
         //        else if (connection->getStatus() == CGI_PROCESSING && filter == EVFILT_WRITE &&
 //               fd == this->response->getCgi()->getRequestPipe()) {
@@ -103,14 +89,10 @@ void Daemon::processEvent(Connection *connection, int fd, size_t bytes_available
 //        readCgi(bytes_available, eof);
 //    }
     else if (connection->getStatus() == Connection::SENDING && filter == EVFILT_WRITE && fd == connection_fd) {
-        std::cout << "Daemon::processEvent 5" << std::endl;
         connection->processResponse(bytes_available, eof);
     }
-//prev_status   = connection->getStatus();
+
     if (prev_status != connection->getStatus()) {
-        std::cout << "Daemon::processEvent 6 prev_status: " << prev_status << " status: " << connection->getStatus()
-                  << std::endl;
-//        std::cout << "prev_status != connection->getStatus()" << std::endl;
 //        this->processPreviousStatus(prev_status);
         this->processCurrentStatus(connection);
     }
@@ -147,15 +129,12 @@ void Daemon::processCurrentStatus(Connection *connection) {
 //        return;
 //    }
     if (status == Connection::SENDING) {
-//        std::cout << "status == Connection::SENDING" << std::endl;
-        this->subscriber.insert(std::make_pair(connection_fd, connection));
-        this->connections.insert(std::make_pair(connection_fd, connection));
-        this->events->subscribe(connection_fd, EVFILT_WRITE);
+        this->subscribe(connection, EVFILT_WRITE);
         return;
     }
-//    if (status == Connection::CLOSING) {
-//        this->events->unsubscribe(connection_fd, EVFILT_READ);
-//    }
+    if (status == Connection::CLOSING) {
+        this->unsubscribe(connection_fd, EVFILT_READ);
+    }
 }
 
 void Daemon::removeExpiredConnections() {
@@ -169,8 +148,6 @@ void Daemon::removeExpiredConnections() {
 
     for (connection_it = this->connections.begin(); connection_it != this->connections.end();) {
         if (connection_it->second->isShouldClose()) {
-//            std::cout << "close Connection " << connection_it->second->getConnectionFd() << std::endl;
-//            std::cout << "\033[0;31m" << connection_it->second->getBuffer().data() << "\033[0m" << std::endl;
             to_delete.push_back(connection_it->second);
         }
         ++connection_it;
@@ -178,14 +155,22 @@ void Daemon::removeExpiredConnections() {
 
     std::vector<Connection *>::iterator it;
     for (it = to_delete.begin(); it != to_delete.end(); ++it) {
-        this->unsubscribeConnection((*it));
+        this->unsubscribe((*it)->getConnectionFd(), EVFILT_READ);
     }
 }
 
-void Daemon::unsubscribeConnection(Connection *connection) {
-    //todo на write тоже надо отписаться, но возможно не тут
-    this->events->unsubscribe(connection->getConnectionFd(), EVFILT_READ);
-    close(connection->getConnectionFd());
+void Daemon::subscribe(Connection *connection, short type) {
+    int connection_fd;
+
+    connection_fd = connection->getConnectionFd();
+    this->subscriber.insert(std::make_pair(connection_fd, connection));
+    this->connections.insert(std::make_pair(connection_fd, connection));
+    this->events->subscribe(connection_fd, type);
+}
+
+void Daemon::unsubscribe(int connection_fd, short type) {
+    this->events->unsubscribe(connection_fd, type);
+    close(connection_fd);
     //            processPreviousStatus(_status);
     //            if(_response != nullptr && _response->getCgi() != nullptr) {
     //                this->events->unsubscribe(_response->getCgi()->getRequestPipe(), EVFILT_WRITE);
@@ -194,14 +179,15 @@ void Daemon::unsubscribeConnection(Connection *connection) {
     //            connection_it->second->close();
 
     std::map<int, IEventSubscriber *>::iterator sub_it;
-    sub_it = this->subscriber.find(connection->getConnectionFd());
+    sub_it = this->subscriber.find(connection_fd);
     if (sub_it != this->subscriber.end()) {
         this->subscriber.erase(sub_it);
     }
 
     std::map<int, Connection *>::iterator connection_it;
-    connection_it = this->connections.find(connection->getConnectionFd());
+    connection_it = this->connections.find(connection_fd);
     if (connection_it != this->connections.end()) {
+        delete connection_it->second;
         this->connections.erase(connection_it);
     }
 }

@@ -49,6 +49,7 @@ public:
     };
 
     Connection(Socket *socket);
+    ~Connection();
 
     int getConnectionFd() const;
     bool getKeepAlive() const;

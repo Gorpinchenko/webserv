@@ -15,9 +15,7 @@ HttpResponse::HttpResponse(Server *server, HttpRequest *request)
 //        return;
 //    }
 
-    std::cout << "this->request->getRequestUri: " << this->request->getRequestUri() << std::endl;
     std::string uri = this->request->getUriNoQuery();
-    std::cout << "uri: " << uri << std::endl;
     this->location = this->server->getLocationFromRequestUri(uri);
     if (this->location == nullptr) {
         this->setError(HTTP_NOT_FOUND);
@@ -31,7 +29,6 @@ HttpResponse::HttpResponse(Server *server, HttpRequest *request)
         }
         path += this->location->getIndex();
     }
-    std::cout << "path: " << path << std::endl;
     this->request->setAbsolutPath(path);
     if (!this->location->methodAllowed(this->request->getMethod())) {
         this->setHeader("Allow", this->location->getAllowedMethodsField());
@@ -145,7 +142,6 @@ void HttpResponse::processPutRequest() {
     }
     //    it = this->request->getHeaderFields().find("Content-Type");
     if (!Path::checkIfPathExists(absolute_path) || file_name.empty()) {
-        std::cout << "HTTP_NOT_FOUND 2" << std::endl;
         this->setError(HTTP_NOT_FOUND);
         return;
     }

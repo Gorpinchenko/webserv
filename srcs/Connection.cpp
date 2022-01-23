@@ -21,6 +21,15 @@ Connection::Connection(Socket *socket)
     this->connection_fd = new_fd;
 }
 
+Connection::~Connection() {
+    if (this->response != nullptr) {
+        delete this->response;
+    }
+    if (this->request != nullptr) {
+        delete this->request;
+    }
+}
+
 int Connection::getConnectionFd() const {
     return this->connection_fd;
 }
@@ -68,7 +77,6 @@ void Connection::prepareResponse() {
     if (!this->request->getReady()) {
         return;
     }
-    std::cout << "Connection::prepareResponse " << std::endl;
     this->buffer.clear();
 
 //        std::cout << *this->request << std::endl;//todo мб сделать запись в консоль
@@ -127,7 +135,6 @@ void Connection::prepareResponseMessage() {
 }
 
 void Connection::processResponse(size_t bytes, bool eof) {
-//    std::cout << "Connection::processResponse" << std::endl;
     int res = 0;
     if (eof || (res = this->response->send(this->connection_fd, bytes)) == 1) {
 //        std::cout << *this->response;
