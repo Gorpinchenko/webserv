@@ -233,9 +233,12 @@ void Config::parseListen(IDirective *server, iterator &value)
 {
     if (value == _config.end())
     {
-        throw "not correct directive in port";
+        throw "not correct directive in listen";
     }
-    this->checkServerDirective(server);
+    if (!dynamic_cast<Server *>(server))
+    {
+        throw "\'listen\' directive supported in server only";
+    }
     ((Server *)server)->setHost(inet_addr((*value).data()));
     if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
@@ -250,7 +253,10 @@ void Config::parsePort(IDirective *server, iterator &value)
     {
         throw "not correct directive in port";
     }
-    this->checkServerDirective(server);
+    if (!dynamic_cast<Server *>(server))
+    {
+        throw "\'port\' directive supported in server only";
+    }
     ((Server *)server)->setPort((uint16_t) atoll((*value).c_str()));
     if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
@@ -265,7 +271,10 @@ void Config::parseServerName(IDirective *server, iterator &value)
     {
         throw "not correct directive in server_name";
     }
-    this->checkServerDirective(server);
+    if (!dynamic_cast<Server *>(server))
+    {
+        throw "\'server_name\' directive supported in server only";
+    }
     ((Server *)server)->setServerName(*value);
     if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
@@ -280,7 +289,10 @@ void Config::parseClientMaxBodySize(IDirective *server, iterator &value)
     {
         throw "not correct directive in client_max_body_size";
     }
-    this->checkServerDirective(server);
+    if (!dynamic_cast<Server *>(server))
+    {
+        throw "\'client_max_body_size\' directive supported in server only";
+    }
     ((Server *)server)->setClientMaxBodySize(atoll((*value).c_str()) * 1000000);
     if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
@@ -295,7 +307,10 @@ void Config::parseMimeConfPath(IDirective *server, iterator &value)
     {
         throw "not correct directive in mime_conf_path";
     }
-    this->checkServerDirective(server);
+    if (!dynamic_cast<Server *>(server))
+    {
+        throw "\'mime_conf_path\' directive supported in server only";
+    }
     ((Server *)server)->setMimeConfPath(*value);
     if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
@@ -310,7 +325,10 @@ void Config::parseErrorPages(IDirective *server, iterator &value)
     {
         throw "not correct directive in error_page";
     }
-    this->checkServerDirective(server);
+    if (!dynamic_cast<Server *>(server))
+    {
+        throw "\'error_page\' directive supported in server only";
+    }
     ((Server *)server)->setErrorPage(std::make_pair(
         (short) std::atoi((*value).c_str()), 
         *(++value))
@@ -375,7 +393,10 @@ void Config::parseRedirection(IDirective *server, iterator &value)
     {
         throw "not correct directive in return";
     }
-    this->checkLocationDirective(server);
+    if (!dynamic_cast<Location *>(server))
+    {
+        throw "\'return\' directive supported in location only";
+    }
     ((Location *)server)->setRedirection(*value);
     if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
@@ -390,7 +411,10 @@ void Config::parseRoot(IDirective *server, iterator &value)
     {
         throw "not correct directive in root";
     }
-    this->checkLocationDirective(server);
+    if (!dynamic_cast<Location *>(server))
+    {
+        throw "\'root\' directive supported in location only";
+    }
     ((Location *)server)->setRoot(*value);
     if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
@@ -405,7 +429,10 @@ void Config::parseMethods(IDirective *server, iterator &value)
     {
         throw "not correct directive in methods";
     }
-    this->checkLocationDirective(server);
+    if (!dynamic_cast<Location *>(server))
+    {
+        throw "\'methods\' directive supported in location only";
+    }
     ((Location *)server)->setMethod(0, false);
     while (value != _config.end())
     {
@@ -429,7 +456,10 @@ void Config::parseFileUpload(IDirective *server, iterator &value)
     {
         throw "not correct directive in file_upload";
     }
-    this->checkLocationDirective(server);
+    if (!dynamic_cast<Location *>(server))
+    {
+        throw "\'file_upload\' directive supported in location only";
+    }
     ((Location *)server)->setFileUpload(*value == "on" ? true : false);
     if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
@@ -444,7 +474,10 @@ void Config::parseUploadTmpPath(IDirective *server, iterator &value)
     {
         throw "not correct directive in upload_tmp_path";
     }
-    this->checkLocationDirective(server);
+    if (!dynamic_cast<Location *>(server))
+    {
+        throw "\'upload_tmp_path\' directive supported in location only";
+    }
     ((Location *)server)->setUploadTmpPath(*value);
     if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
@@ -459,7 +492,10 @@ void Config::parseIndex(IDirective *server, iterator &value)
     {
         throw "not correct directive in index";
     }
-    this->checkLocationDirective(server);
+    if (!dynamic_cast<Location *>(server))
+    {
+        throw "\'index\' directive supported in location only";
+    }
     ((Location *)server)->setIndex(*value);
     if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
@@ -474,7 +510,10 @@ void Config::parseAutoindex(IDirective *server, iterator &value)
     {
         throw "not correct directive in autoindex";
     }
-    this->checkLocationDirective(server);
+    if (!dynamic_cast<Location *>(server))
+    {
+        throw "\'autoindex\' directive supported in location only";
+    }
     ((Location *)server)->setAutoindex(*value == "on" ? true : false);
     if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
@@ -485,29 +524,20 @@ void Config::parseAutoindex(IDirective *server, iterator &value)
 
 void Config::parseCgiPass(IDirective *server, iterator &value)
 {
-    this->checkLocationDirective(server);
+    if (value == _config.end())
+    {
+        throw "not correct directive in cgi_pass";
+    }
+    if (!dynamic_cast<Location *>(server))
+    {
+        throw "\'cgi_pass\' directive supported in location only";
+    }
     ((Location *)server)->setCgiPass(*value);
     if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
         throw std::string(*(myPrev(value)) + " " + *value + " ->;");
     }
     value++;
-}
-
-void Config::checkLocationDirective(IDirective *directive)
-{
-    if (!dynamic_cast<Location *>(directive))
-    {
-        throw "method not supported in location directive";
-    }
-}
-
-void Config::checkServerDirective(IDirective *directive)
-{
-    if (!dynamic_cast<Server *>(directive))
-    {
-        throw "method not supported in server directive";
-    }
 }
 
 void Config::setDefault(Server *server)

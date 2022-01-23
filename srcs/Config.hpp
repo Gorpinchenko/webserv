@@ -148,10 +148,6 @@ public:
     void parseAutoindex(IDirective *server, iterator &value);
 
     void parseCgiPass(IDirective *server, iterator &value);
-
-    void checkLocationDirective(IDirective *directive);
-
-    void checkServerDirective(IDirective *directive);
 };
 
 template <typename ForwardIt>
