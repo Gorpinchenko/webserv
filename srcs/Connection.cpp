@@ -114,20 +114,20 @@ void Connection::prepareResponseMessage() {
 //        return false;
 //    }
     if (this->response->getStatusCode() != HttpRequest::HTTP_OK && this->response->getStatusCode() != 0) {
-        //        this->response->setResponseString("HTTP/1.1", static_cast<HTTPStatus>(_status_code));
+        this->response->setResponseString(static_cast<AHttpMessage::HTTPStatus>(this->response->getStatusCode()));
     } else if (this->request->getMethod() == "GET") {
         this->response->processGetRequest();
     } else if (this->request->getMethod() == "POST") {
         this->response->processPostRequest();
-//    } else if (this->request->getMethod() == "DELETE") {
-//        this->request->processDeleteRequest(_config, req);
+    } else if (this->request->getMethod() == "DELETE") {
+        this->response->processDeleteRequest();
     } else if (this->request->getMethod() == "PUT") {
         this->response->processPutRequest();
     }
 }
 
 void Connection::processResponse(size_t bytes, bool eof) {
-    std::cout << "Connection::processResponse" << std::endl;
+//    std::cout << "Connection::processResponse" << std::endl;
     int res = 0;
     if (eof || (res = this->response->send(this->connection_fd, bytes)) == 1) {
 //        std::cout << *this->response;
@@ -152,7 +152,7 @@ void Connection::processResponse(size_t bytes, bool eof) {
 
 void Connection::parseRequestMessage(size_t &pos) {
     const std::string &buff = this->getBuffer();
-    std::cout << "Connection::parseRequestMessage " << std::endl;
+//    std::cout << "Connection::parseRequestMessage " << std::endl;
     (this->request->headersSent(buff)
      && this->request->parseRequestLine(buff, pos)
      && this->request->parseHeaders(buff, pos)

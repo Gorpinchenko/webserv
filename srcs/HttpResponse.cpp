@@ -1,26 +1,38 @@
 #include "HttpResponse.hpp"
 
 //HttpResponse::HttpResponse(Server *server, HttpResponse::HTTPStatus status) {
-HttpResponse::HttpResponse(Server *server, HttpRequest *request) : protocol("HTTP/1.1") {
-//    HttpRequest *req = session.getRequest();
-
-    this->server      = server;
-    this->request     = request;
+HttpResponse::HttpResponse(Server *server, HttpRequest *request)
+        : protocol("HTTP/1.1"),
+          status_code(HTTP_OK),
+          body_size(0),
+          pos(0),
+          server(server),
+          request(request) {
 //    this->cgi         = nullptr;
-//    this->body_size   = 0;
-    this->pos         = 0;
-    this->status_code = HTTP_OK;
 
 //    if (config == nullptr) {
 //        setError(HTTP_BAD_REQUEST, config);
 //        return;
 //    }
 
-    this->location = this->server->getLocationFromRequestUri(this->request->getUriNoQuery());
+    std::cout << "this->request->getRequestUri: " << this->request->getRequestUri() << std::endl;
+    std::string uri = this->request->getUriNoQuery();
+    std::cout << "uri: " << uri << std::endl;
+    this->location = this->server->getLocationFromRequestUri(uri);
     if (this->location == nullptr) {
         this->setError(HTTP_NOT_FOUND);
         return;
     }
+    Path::removeLocFromUri(this->location->getPath(), uri);
+    std::string path = Path::getFullPath(this->location->getPath(), this->location->getRoot(), uri);
+    if (Path::isDirectory(path) && !this->location->getAutoindex() && !this->location->getIndex().empty()) {
+        if (*path.rbegin() != '/') {
+            path += '/';
+        }
+        path += this->location->getIndex();
+    }
+    std::cout << "path: " << path << std::endl;
+    this->request->setAbsolutPath(path);
     if (!this->location->methodAllowed(this->request->getMethod())) {
         this->setHeader("Allow", this->location->getAllowedMethodsField());
         this->setError(HTTP_METHOD_NOT_ALLOWED);
@@ -38,11 +50,11 @@ HttpResponse::HttpResponse(Server *server, HttpRequest *request) : protocol("HTT
         return;
     }
 
-    std::vector<Location *>::const_iterator it;
-    it = this->server->checkCgi(this->request->getUriNoQuery());
-    if (it != this->server->getLocations().end()) {
-        this->location = *it;
-    }
+//    std::vector<Location *>::const_iterator it;
+//    it = this->server->checkCgi(this->request->getUriNoQuery());
+//    if (it != this->server->getLocations().end()) {
+//        this->location = *it;
+//    }
 }
 
 
@@ -73,74 +85,98 @@ void HttpResponse::processGetRequest() {
             this->body_size = this->body.size();
             this->setHeader("Content-Type", "text/html");
             this->setResponseString(HTTP_OK);
+            return;
         }
-        setError(HTTP_NOT_FOUND);
+        this->setError(HTTP_NOT_FOUND);
     } else {
         HTTPStatus error_code = this->writeFileToBuffer(absolute_path);
 
         if (error_code == HTTP_OK) {
             this->setResponseString(HTTP_OK);
         } else {
-            setError(error_code);
+            this->setError(error_code);
         }
     }
 }
 
 void HttpResponse::processPostRequest() {
-//    //        setError(HTTP_METHOD_NOT_ALLOWED, serv);
-//    if (serv == nullptr) {
-//        setError(HTTP_BAD_REQUEST, nullptr);
-//        return;
-//    }
-//    setResponseString("HTTP/1.1", HTTP_OK);
-//    _body_size = 0;
+    //        setError(HTTP_METHOD_NOT_ALLOWED, serv);
+    if (this->server == nullptr) {//todo непонятно, нужно ли это условие
+        this->setError(HTTP_BAD_REQUEST);
+    } else {
+        this->setResponseString(HTTP_OK);
+        this->body_size = 0;
+    }
+}
+
+void HttpResponse::processDeleteRequest() {
+    std::string absolute_path = this->request->getAbsolutPath();
+
+    if (Path::isNotEmptyDirectory(absolute_path)) {
+        this->setError(HTTP_CONFLICT);
+        return;
+    }
+
+    if (Path::fileExistsAndWritable(absolute_path) || Path::folderExistsAndWritable(absolute_path)) {
+        if (std::remove(absolute_path.data()) != 0) {
+            this->setError(HTTP_INTERNAL_SERVER_ERROR);
+        } else {
+            this->setResponseString(HTTP_OK);
+        }
+    } else {
+        if (errno == EACCES) {
+            this->setError(HTTP_FORBIDDEN);
+        } else {
+            this->setError(HTTP_GONE);
+        }
+    }
 }
 
 void HttpResponse::processPutRequest() {
-//    //    std::map<std::string, std::string>::const_iterator it;
-//    std::string file_name;
-//
-//    file_name = Utils::getFileNameFromRequest(req->getRequestUri());
-//
-//    if (!loc->isFileUploadOn()) {
-//        setError(HTTP_METHOD_NOT_ALLOWED, serv);
-//        return;
-//    }
-//    //    it = req->getHeaderFields().find("Content-Type");
-//    if (!Utils::checkIfPathExists(req->getNormalizedPath()) || file_name.empty()) {
-//        setError(HTTP_NOT_FOUND, serv);
-//        return;
-//    }
-//    if (Utils::folderExistsAndWritable(req->getNormalizedPath()))
-//    {
-//        setError(HTTP_CONFLICT, serv);
-//        return;
-//    }
-//    if (Utils::fileExistsAndWritable(req->getNormalizedPath()))
-//        setResponseString("HTTP/1.1", HTTP_NO_CONTENT);
-//    else
-//        setResponseString("HTTP/1.1", HTTP_CREATED);
-//    std::ofstream rf(req->getNormalizedPath(), std::ios::out | std::ios::binary);
-//
-//    //    if (it != req->getHeaderFields().end())
-//    //        extension = MimeType::getFileExtension(it->second);
-//    //    num_files     = Utils::countFilesInFolder(loc->getFileUploadPath());
-//    //    std::ofstream rf(loc->getFileUploadPath() + "uploaded_file" + std::to_string(num_files + 1) + "." + extension,
-//    //                     std::ios::out | std::ios::binary);
-//    if (rf) {
-//        rf.write(req->getBody().data(), req->getBody().size());
-//        if(rf.bad())
-//        {
-//            rf.close();
-//            setError(HTTP_INTERNAL_SERVER_ERROR, serv);
-//        }
-//        rf.close();
-//        insertHeader("Content-Location", req->getRequestUri());
-//        return;
-//    } else {
-//        setError(HTTP_INTERNAL_SERVER_ERROR, serv);
-//        return;
-//    }
+    //    std::map<std::string, std::string>::const_iterator it;
+    std::string absolute_path = this->request->getAbsolutPath();
+    std::string file_name;
+
+    file_name = Path::getFileNameFromPath(this->request->getRequestUri());
+
+    if (!this->location->getFileUpload()) {
+        this->setError(HTTP_METHOD_NOT_ALLOWED);
+        return;
+    }
+    //    it = this->request->getHeaderFields().find("Content-Type");
+    if (!Path::checkIfPathExists(absolute_path) || file_name.empty()) {
+        std::cout << "HTTP_NOT_FOUND 2" << std::endl;
+        this->setError(HTTP_NOT_FOUND);
+        return;
+    }
+    if (Path::folderExistsAndWritable(absolute_path)) {
+        this->setError(HTTP_CONFLICT);
+        return;
+    }
+    if (Path::fileExistsAndWritable(absolute_path)) {
+        this->setResponseString(HTTP_NO_CONTENT);
+    } else {
+        this->setResponseString(HTTP_CREATED);
+    }
+
+    //    if (it != this->request->getHeaderFields().end())
+    //        extension = MimeType::getFileExtension(it->second);
+    //    num_files     = Utils::countFilesInFolder(loc->getFileUploadPath());
+    //    std::ofstream rf(loc->getFileUploadPath() + "uploaded_file" + std::to_string(num_files + 1) + "." + extension,
+    //                     std::ios::out | std::ios::binary);
+    std::ofstream rf(absolute_path, std::ios::out | std::ios::binary);
+    if (rf) {
+        rf.write(this->request->getBody().data(), static_cast<long >(this->request->getBody().size()));
+        if (rf.bad()) {
+            this->setError(HTTP_INTERNAL_SERVER_ERROR);
+        }
+        rf.close();
+        this->setHeader("Content-Location", this->request->getRequestUri());
+        return;
+    } else {
+        this->setError(HTTP_INTERNAL_SERVER_ERROR);
+        return;
+    }
 }
 
 HttpResponse::HTTPStatus HttpResponse::writeFileToBuffer(const std::string &file_path) {
@@ -200,7 +236,7 @@ void HttpResponse::setError(HTTPStatus code) {
 }
 
 void HttpResponse::prepareData() {
-    std::cout << "HttpResponse::prepareData" << std::endl;
+//    std::cout << "HttpResponse::prepareData" << std::endl;
     std::map<std::string, std::string>::iterator it  = headers.begin();
     time_t                                       now = time(nullptr);
     char                                         buf[100];
@@ -230,7 +266,7 @@ void HttpResponse::prepareData() {
 }
 
 int HttpResponse::send(int fd, size_t bytes) {
-    std::cout << "HttpResponse::send" << std::endl;
+//    std::cout << "HttpResponse::send" << std::endl;
     size_t  pos_var = 0;
     ssize_t res     = 0;
 
@@ -251,7 +287,7 @@ int HttpResponse::send(int fd, size_t bytes) {
         this->pos += res;
         bytes -= res;
     }
-//    if (req->getMethod() == "HEAD")
+//    if (this->request->getMethod() == "HEAD")
 //        return (1);
     if (this->pos >= _headers_vec.size() &&
         !this->body.empty() && bytes > 0 &&

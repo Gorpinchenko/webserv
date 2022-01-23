@@ -42,7 +42,7 @@ void Daemon::run() {
 
             if (sub_it != this->subscriber.end()) {
                 if (dynamic_cast<Socket *>(sub_it->second)) {
-                    std::cout << "Socket " << std::endl;
+//                    std::cout << "Socket " << std::endl;
                     Connection *connection;
                     int        connection_fd;
 
@@ -52,7 +52,7 @@ void Daemon::run() {
                     this->connections.insert(std::make_pair(connection_fd, connection));
                     this->events->subscribe(connection_fd, EVFILT_READ);
                 } else if (dynamic_cast<Connection *>(sub_it->second)) {
-                    std::cout << "Connection " << std::endl;
+//                    std::cout << "Connection " << std::endl;
                     Connection *connection = dynamic_cast<Connection *>(sub_it->second);
 //                    connection->parseRequest(event.data);
 
@@ -70,7 +70,7 @@ void Daemon::run() {
 }
 
 void Daemon::processEvent(Connection *connection, int fd, size_t bytes_available, int16_t filter, bool eof) {
-    std::cout << "Daemon::processEvent" << std::endl;
+//    std::cout << "Daemon::processEvent" << std::endl;
     short       prev_status   = connection->getStatus();
     int         connection_fd = connection->getConnectionFd();
     HttpRequest *request      = connection->getRequest();
@@ -80,6 +80,7 @@ void Daemon::processEvent(Connection *connection, int fd, size_t bytes_available
         (filter == EVFILT_WRITE ||
          (filter == EVFILT_READ && (request == nullptr || !request->getReady()))
         )) {
+        std::cout << "Daemon::processEvent 1" << std::endl;
         this->unsubscribeConnection(connection);
         return;
 //        return end();
@@ -87,8 +88,11 @@ void Daemon::processEvent(Connection *connection, int fd, size_t bytes_available
             (connection->getStatus() == Connection::AWAIT_NEW_REQ || connection->getStatus() == Connection::UNUSED) &&
             filter == EVFILT_READ &&
             fd == connection_fd && bytes_available > 0) {
+        std::cout << "Daemon::processEvent 2" << std::endl;
         connection->parseRequest(bytes_available);
+        std::cout << "Daemon::processEvent 22" << std::endl;
         connection->prepareResponse();
+        std::cout << "Daemon::processEvent 22-2" << std::endl;
     }
         //        else if (connection->getStatus() == CGI_PROCESSING && filter == EVFILT_WRITE &&
 //               fd == this->response->getCgi()->getRequestPipe()) {
@@ -99,13 +103,59 @@ void Daemon::processEvent(Connection *connection, int fd, size_t bytes_available
 //        readCgi(bytes_available, eof);
 //    }
     else if (connection->getStatus() == Connection::SENDING && filter == EVFILT_WRITE && fd == connection_fd) {
+        std::cout << "Daemon::processEvent 5" << std::endl;
         connection->processResponse(bytes_available, eof);
     }
 //prev_status   = connection->getStatus();
     if (prev_status != connection->getStatus()) {
-//        //        processPreviousStatus(prev_status);
-//        //        processCurrentStatus(connection->getStatus());
+        std::cout << "Daemon::processEvent 6 prev_status: " << prev_status << " status: " << connection->getStatus()
+                  << std::endl;
+//        std::cout << "prev_status != connection->getStatus()" << std::endl;
+//        this->processPreviousStatus(prev_status);
+        this->processCurrentStatus(connection);
     }
+}
+
+//void Daemon::processPreviousStatus(short prev_status) {
+//    if (prev_status == Connection::CGI_PROCESSING) {
+//        if (!_request->getBody().empty()) {
+//            this->events->unsubscribe(_response->getCgi()->getRequestPipe(), EVFILT_WRITE);
+//        }
+//        this->events->unsubscribe(_response->getCgi()->getResponsePipe(), EVFILT_READ);
+//        return;
+//    }
+//    //    } else if (prev_status == SENDING) {
+//    //        _mng->unsubscribe(_fd, EVFILT_WRITE);
+//    //        return;
+//    //    }
+//}
+
+void Daemon::processCurrentStatus(Connection *connection) {
+    int   connection_fd;
+    short status;
+
+    connection_fd = connection->getConnectionFd();
+    status        = connection->getStatus();
+//    if (status == Connection::AWAIT_NEW_REQ) {
+//        this->events->subscribe(_fd, EVFILT_READ, this);
+//    }
+//    if (status == Connection::CGI_PROCESSING) {
+//        if (!_request->getBody().empty()) {
+//            this->events->subscribe(_response->getCgi()->getRequestPipe(), EVFILT_WRITE, this);
+//        }
+//        this->events->subscribe(_response->getCgi()->getResponsePipe(), EVFILT_READ, this);
+//        return;
+//    }
+    if (status == Connection::SENDING) {
+//        std::cout << "status == Connection::SENDING" << std::endl;
+        this->subscriber.insert(std::make_pair(connection_fd, connection));
+        this->connections.insert(std::make_pair(connection_fd, connection));
+        this->events->subscribe(connection_fd, EVFILT_WRITE);
+        return;
+    }
+//    if (status == Connection::CLOSING) {
+//        this->events->unsubscribe(connection_fd, EVFILT_READ);
+//    }
 }
 
 void Daemon::removeExpiredConnections() {
@@ -133,7 +183,8 @@ void Daemon::removeExpiredConnections() {
 }
 
 void Daemon::unsubscribeConnection(Connection *connection) {
-    this->events->unsubscribe(connection->getConnectionFd());
+    //todo на write тоже надо отписаться, но возможно не тут
+    this->events->unsubscribe(connection->getConnectionFd(), EVFILT_READ);
     close(connection->getConnectionFd());
     //            processPreviousStatus(_status);
     //            if(_response != nullptr && _response->getCgi() != nullptr) {

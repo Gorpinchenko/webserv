@@ -116,9 +116,8 @@ public:
     void setResponseString(HTTPStatus status);
 
     void processGetRequest();
-
     void processPostRequest();
-
+    void processDeleteRequest();
     void processPutRequest();
 
     int send(int fd, size_t bytes);

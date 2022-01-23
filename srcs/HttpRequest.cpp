@@ -69,6 +69,10 @@ const std::string &HttpRequest::getAbsolutPath() const {
     return this->absolute_path;
 }
 
+void HttpRequest::setAbsolutPath(const std::string& path) {
+    this->absolute_path = path;
+}
+
 bool HttpRequest::headersSent(const std::string &req) {
     if (this->request_uri.empty()) {
         if (req.find("\r\n\r\n") == std::string::npos) {
@@ -141,10 +145,10 @@ bool HttpRequest::processUri() {
 
     if (res == std::string::npos) {
         this->query_string = "";
-        this->uri_no_query = this->query_string;
+        this->uri_no_query = this->request_uri;
     } else {
         this->query_string = (this->request_uri.substr(res + 1, this->request_uri.size()));
-        this->uri_no_query = this->query_string.substr(0, res);
+        this->uri_no_query = this->request_uri.substr(0, res);
     }
 
     return true;

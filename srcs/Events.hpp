@@ -16,7 +16,7 @@ private:
 public:
     Events(int max_size);
     void subscribe(int fd, short type);
-    void unsubscribe(int fd);
+    void unsubscribe(int fd, short type);
     std::pair<int, struct kevent *> getUpdates(int = 5);
     std::set<int> &getFds();
 

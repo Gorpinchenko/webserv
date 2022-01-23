@@ -49,6 +49,7 @@ public:
     const std::string &getUriNoQuery() const;
     const std::string &getMethod() const;
     const std::string &getAbsolutPath() const;
+    void setAbsolutPath(const std::string &path);
 
     bool headersSent(const std::string &req);
     bool parseRequestLine(const std::string &req, size_t &pos);

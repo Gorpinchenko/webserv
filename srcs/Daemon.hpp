@@ -21,10 +21,12 @@ private:
     static void registerSignal();
     void removeExpiredConnections();
     void unsubscribeConnection(Connection *connection);
+    void processEvent(Connection *connection, int fd, size_t bytes_available, int16_t filter, bool eof);
+//    void processPreviousStatus(short prev_status);
+    void processCurrentStatus(Connection *connection);
 public:
     Daemon(Config *config, const std::map<int, Socket *> &sockets, Events *events);
     void run();
-    void processEvent(Connection *connection, int fd, size_t bytes_available, int16_t filter, bool eof);
 };
 
 #endif //WEBSERV_DAEMON_HPP

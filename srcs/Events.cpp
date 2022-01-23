@@ -9,6 +9,7 @@ Events::Events(int max_size) : max_size(max_size) {
 }
 
 void Events::subscribe(int fd, short type) {
+//    std::cout << "Events::subscribe " << type << std::endl;
     this->fds.insert(fd);
 
     uint64_t t_fd   = fd;
@@ -26,7 +27,9 @@ void Events::subscribe(int fd, short type) {
     }
 }
 
-void Events::unsubscribe(int fd) {//todo мб это не нужно
+void Events::unsubscribe(int fd, short type) {//todo мб это не нужно
+    //todo свудфть нормальную отписку от событий
+    (void)type;//todo задействовать
     this->fds.erase(fd);
 }
 
