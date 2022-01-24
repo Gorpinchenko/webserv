@@ -2,14 +2,15 @@
 
 
 Connection::Connection(Socket *socket)
-        : server(socket->getServer()),
-          keep_alive(false),
+        : keep_alive(false),
           status(UNUSED),
           connection_timeout(),
           chunk_length(), //todo поменять название или вынести отсюда
           c_bytes_left(0), //todo поменять название или вынести отсюда
-          skip_n(0) //todo поменять название или вынести отсюда
-{
+          skip_n(0), //todo поменять название или вынести отсюда
+          request(nullptr),
+          response(nullptr),
+          server(socket->getServer()) {
     std::time(&this->connection_timeout);
     int       new_fd;
     socklen_t s_len;
@@ -24,9 +25,11 @@ Connection::Connection(Socket *socket)
 Connection::~Connection() {
     if (this->response != nullptr) {
         delete this->response;
+        this->response = nullptr;
     }
     if (this->request != nullptr) {
         delete this->request;
+        this->request = nullptr;
     }
 }
 

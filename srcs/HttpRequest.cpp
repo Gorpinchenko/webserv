@@ -16,8 +16,8 @@ HttpRequest::HttpRequest()
         ready(false),
         parsing_error(HttpResponse::HTTP_OK) {}
 
-void HttpRequest::setReady(bool ready) {
-    this->ready = ready;
+void HttpRequest::setReady(bool status) {
+    this->ready = status;
 }
 
 bool HttpRequest::getReady() const {
@@ -147,7 +147,7 @@ bool HttpRequest::processUri() {
         this->query_string = "";
         this->uri_no_query = this->request_uri;
     } else {
-        this->query_string = (this->request_uri.substr(res + 1, this->request_uri.size()));
+        this->query_string = this->request_uri.substr(res + 1, this->request_uri.size());
         this->uri_no_query = this->request_uri.substr(0, res);
     }
 

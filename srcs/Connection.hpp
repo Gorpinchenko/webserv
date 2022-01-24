@@ -18,10 +18,6 @@ class Connection : public IEventSubscriber {
 private:
     int          connection_fd;
     std::string  buffer;
-    HttpRequest  *request;
-    HttpResponse *response;
-    Server       *server;
-
     bool            keep_alive;
     short           status;
     time_t          connection_timeout;
@@ -30,6 +26,10 @@ private:
     std::string     chunk_length;
     unsigned long   c_bytes_left;
     short           skip_n;
+
+    HttpRequest  *request;
+    HttpResponse *response;
+    Server       *server;
 
     static const int DEFAULT_TIMEOUT = 2;
 

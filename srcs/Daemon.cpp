@@ -188,6 +188,7 @@ void Daemon::unsubscribe(int connection_fd, short type) {
     connection_it = this->connections.find(connection_fd);
     if (connection_it != this->connections.end()) {
         delete connection_it->second;
+        connection_it->second = nullptr;
         this->connections.erase(connection_it);
     }
 }
