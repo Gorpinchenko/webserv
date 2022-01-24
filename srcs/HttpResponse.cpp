@@ -41,17 +41,11 @@ HttpResponse::HttpResponse(Server *server, HttpRequest *request)
         return;
     }
 //    if (this->location->isMaxBodySet() && this->server->getMaxBody() < this->request->getBody().size()) {
-    if (this->server->getMaxBody() < this->request->getBody().size()) {
+    if (this->server->getClientMaxBodySize() < this->request->getBody().size()) {
 //        session.setKeepAlive(false);
         this->setError(HTTP_REQUEST_ENTITY_TOO_LARGE);
         return;
     }
-
-//    std::vector<Location *>::const_iterator it;
-//    it = this->server->checkCgi(this->request->getUriNoQuery());
-//    if (it != this->server->getLocations().end()) {
-//        this->location = *it;
-//    }
 }
 
 

@@ -14,7 +14,7 @@ Server::Server():
 Server::~Server()
 {
     std::vector<Location *>::iterator l_it = _locations.begin();
-    
+
     while (l_it != _locations.end())
     {
         delete *l_it;
@@ -80,7 +80,7 @@ void Server::setClientMaxBodySize(unsigned long client_max_body_size)
 
 void Server::setMimeConfPath(std::string const &mime_conf_path)
 {
-    _mime_conf_path = mime_conf_path;   
+    _mime_conf_path = mime_conf_path;
 }
 
 void Server::setErrorPages(std::map<short, std::string> error_pages)
@@ -100,21 +100,55 @@ void Server::setLocations(std::vector<Location *> locations)
 
 void Server::setLocation(Location * location)
 {
-    _locations.push_back(location);   
+    _locations.push_back(location);
 }
 
 const Location *Server::getLocationFromRequestUri(const std::string &uri) {
-    (void)uri;
-    return nullptr;//todo у ребят называется getLocationFromRequest
-}
+    std::vector<Location *>::const_iterator it;
+    std::string                             path;
+    size_t                                  dot_pos;
+    std::string                             uri_ext;
+    std::string                             loc_ext;
 
-unsigned long Server::getMaxBody() const {
-    return 0;//todo
-}
+    if (uri.empty()) {
+        return nullptr;
+    }
 
-std::vector<Location *>::const_iterator Server::checkCgi(const std::string &path) const {
-    (void)path;
-    return std::vector<Location *, std::allocator<Location *> >::const_iterator();
+    dot_pos = uri.find_last_of('.');
+
+    if (dot_pos != std::string::npos) {
+        uri_ext = uri.substr(dot_pos);
+    }
+
+    for (it = _locations.begin(); it != _locations.end(); ++it) {
+        path = (*it)->getPath();
+
+        if (path == uri || path == (uri + '/')) {
+            break;
+        }
+
+        if (uri.find(path) == 0) {
+            break;
+        }
+
+        std::cout << "(*it)->getCgiPass() " << (*it)->getCgiPass() << std::endl;
+        if (!(*it)->getCgiPass().empty() && !uri_ext.empty()) {
+            dot_pos = path.find_last_of('.');
+            if (dot_pos != std::string::npos) {
+                loc_ext = path.substr(dot_pos);
+            }
+            if (!loc_ext.empty() && loc_ext == uri_ext) {
+                break;
+            }
+            loc_ext = "";
+        }
+    }
+
+    if (it == _locations.end()) {
+        return nullptr;
+    }
+
+    return *it;
 }
 
 std::string Server::getCustomErrorPagePath(short code) const {
