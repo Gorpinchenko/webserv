@@ -25,6 +25,7 @@ public:
         _methods.push_back("GET");
         _methods.push_back("POST");
         _methods.push_back("DELETE");
+        _methods.push_back("PUT");
 
         _directs.push_back("listen");
         _directs.push_back("port");

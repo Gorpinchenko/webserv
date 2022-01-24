@@ -4,7 +4,7 @@
 Location::Location():
 	_path(""),
 	_root(""),
-	_methods(3, false),
+	_methods(4, false),
 	_file_upload(false),
 	_upload_tmp_path(""),
 	_index(""),
