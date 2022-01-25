@@ -12,7 +12,8 @@ SRC_FILES	= main.cpp \
 				Cgi.cpp \
 				utils/Path.cpp \
 				utils/FileStats.cpp \
-				utils/Print.cpp
+				utils/Print.cpp \
+				utils/MimeType.cpp
 
 NAME	= webserv
 

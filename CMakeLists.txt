@@ -26,4 +26,5 @@ add_executable(
         srcs/Cgi.cpp srcs/Cgi.hpp
         srcs/utils/Print.cpp srcs/utils/Print.hpp
         srcs/utils/Path.cpp srcs/utils/Path.hpp
+        srcs/utils/MimeType.cpp srcs/utils/MimeType.hpp
 )
