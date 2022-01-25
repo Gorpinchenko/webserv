@@ -9,6 +9,7 @@ SRC_FILES	= main.cpp \
 				HttpResponse.cpp \
 				Events.cpp \
 				Daemon.cpp \
+				Cgi.cpp \
 				utils/Path.cpp \
 				utils/FileStats.cpp \
 				utils/Print.cpp

@@ -96,11 +96,11 @@ void Connection::prepareResponse() {
         this->response->setHeader("Keep-Alive", "timeout=" + std::to_string(DEFAULT_TIMEOUT));
     }
 
-//    if (this->response->getCgi() != nullptr && this->response->getStatusCode() == HttpResponse::HTTP_OK) {
-//        this->status = CGI_PROCESSING;
-//    } else {
-    this->status = SENDING;
-//    }
+    if (this->response->isCgi() && this->response->getStatusCode() == HttpResponse::HTTP_OK) {
+        this->status = CGI_PROCESSING;
+    } else {
+        this->status = SENDING;
+    }
 }
 
 std::string Connection::getIp() {
@@ -110,22 +110,11 @@ std::string Connection::getIp() {
 }
 
 void Connection::prepareResponseMessage() {
-    if (this->request->getParsingError() != HttpRequest::HTTP_OK) {
-//        this->response->setError(static_cast<HTTPStatus>(this->request->getParsingError()), _config);
+    if (this->response->getStatusCode() != HttpRequest::HTTP_OK && this->response->getStatusCode() != 0) {
         return;
     }
-//    if (!_loc->getCgiPass().empty()) {
-//        _cgi = new CgiHandler(mng);
-//        _cgi->prepareCgiEnv(req, req->getNormalizedPath(), ip, std::to_string(_config->getPort()), _loc->getCgiPass());
-//        _cgi->setCgiPath(_loc->getCgiPass());
-//        if (executeCgi(req) != HTTP_OK) {
-//            delete _cgi;
-//            setError(HTTP_INTERNAL_SERVER_ERROR, _config);
-//        }
-//        return false;
-//    }
-    if (this->response->getStatusCode() != HttpRequest::HTTP_OK && this->response->getStatusCode() != 0) {
-        this->response->setResponseString(static_cast<AHttpMessage::HTTPStatus>(this->response->getStatusCode()));
+    if (this->response->isCgi()) {
+        this->response->processCgiRequest(this->getIp());
     } else if (this->request->getMethod() == "GET") {
         this->response->processGetRequest();
     } else if (this->request->getMethod() == "POST") {
@@ -158,6 +147,18 @@ void Connection::processResponse(size_t bytes, bool eof) {
 //        end();
     }
     std::time(&this->connection_timeout);
+}
+
+void Connection::processCgi(int fd, size_t bytes_available, int16_t filter, bool eof) {
+    (void) fd;
+    (void) bytes_available;
+    (void) filter;
+    (void) eof;
+//    if (filter == EVFILT_WRITE && fd == this->response->getCgi()->getRequestPipe()) {
+//        writeCgi(bytes_available, eof);
+//    } else if (ilter == EVFILT_READ && fd == this->response->getCgi()->getResponsePipe()) {
+//        readCgi(bytes_available, eof);
+//    }
 }
 
 void Connection::parseRequestMessage(size_t &pos) {

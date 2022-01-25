@@ -7,7 +7,8 @@ HttpResponse::HttpResponse(Server *server, HttpRequest *request)
           body_size(0),
           pos(0),
           server(server),
-          request(request) {
+          request(request),
+          cgi(nullptr) {
 //    this->cgi         = nullptr;
 
 //    if (config == nullptr) {
@@ -46,6 +47,13 @@ HttpResponse::HttpResponse(Server *server, HttpRequest *request)
         this->setError(HTTP_REQUEST_ENTITY_TOO_LARGE);
         return;
     }
+    if (this->request->getParsingError() != HttpRequest::HTTP_OK) {
+        this->setError(static_cast<HttpRequest::HTTPStatus>(this->request->getParsingError()));
+        return;
+    }
+    if (!this->location->getCgiPass().empty()) {
+        this->cgi = new Cgi();
+    }
 }
 
 
@@ -58,6 +66,20 @@ void HttpResponse::setResponseString(HTTPStatus status) {
     this->status_reason = getReasonForStatus(status);
     this->response_string =
             this->protocol + " " + std::to_string(this->status_code) + " " + this->status_reason + "\r\n";
+}
+
+bool HttpResponse::isCgi() {
+    return !(this->location->getCgiPass().empty()) && (this->cgi != nullptr);
+}
+
+void HttpResponse::processCgiRequest(const std::string &ip) {
+    (void) ip;
+//    this->cgi->prepareCgiEnv(req, req->getNormalizedPath(), ip, std::to_string(_config->getPort()), _loc->getCgiPass());
+//    this->cgi->setCgiPath(this->location->getCgiPass());
+//    if (this->executeCgi(req) != HTTP_OK) {
+//        delete this->cgi;
+//        this->setError(HTTP_INTERNAL_SERVER_ERROR);
+//    }
 }
 
 void HttpResponse::processGetRequest() {

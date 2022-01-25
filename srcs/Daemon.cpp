@@ -46,7 +46,7 @@ void Daemon::run() {
                     Connection *connection;
 
                     connection = new Connection(dynamic_cast<Socket *>(sub_it->second));
-                    this->subscribe(connection, EVFILT_READ);
+                    this->subscribe(connection->getConnectionFd(), EVFILT_READ, connection);
                 } else if (dynamic_cast<Connection *>(sub_it->second)) {
 //                    std::cout << "Connection " << std::endl;
                     Connection *connection = dynamic_cast<Connection *>(sub_it->second);
@@ -73,22 +73,13 @@ void Daemon::processEvent(Connection *connection, int fd, size_t bytes_available
         this->unsubscribe(connection_fd, EVFILT_READ);
 //        return end();
         return;
-    } else if (
-            (connection->getStatus() == Connection::AWAIT_NEW_REQ || connection->getStatus() == Connection::UNUSED) &&
-            filter == EVFILT_READ &&
-            fd == connection_fd && bytes_available > 0) {
+    } else if ((connection->getStatus() == Connection::AWAIT_NEW_REQ || connection->getStatus() == Connection::UNUSED)
+               && filter == EVFILT_READ && fd == connection_fd && bytes_available > 0) {
         connection->parseRequest(bytes_available);
         connection->prepareResponse();
-    }
-        //        else if (connection->getStatus() == CGI_PROCESSING && filter == EVFILT_WRITE &&
-//               fd == this->response->getCgi()->getRequestPipe()) {
-//        writeCgi(bytes_available, eof);
-//    }
-//        else if (connection->getStatus() == CGI_PROCESSING && filter == EVFILT_READ &&
-//               fd == this->response->getCgi()->getResponsePipe()) {
-//        readCgi(bytes_available, eof);
-//    }
-    else if (connection->getStatus() == Connection::SENDING && filter == EVFILT_WRITE && fd == connection_fd) {
+    } else if (connection->getStatus() == Connection::CGI_PROCESSING) {
+        connection->processCgi(fd, bytes_available, filter, eof);
+    } else if (connection->getStatus() == Connection::SENDING && filter == EVFILT_WRITE && fd == connection_fd) {
         connection->processResponse(bytes_available, eof);
     }
 
@@ -118,18 +109,18 @@ void Daemon::processCurrentStatus(Connection *connection) {
 
     connection_fd = connection->getConnectionFd();
     status        = connection->getStatus();
-//    if (status == Connection::AWAIT_NEW_REQ) {
-//        this->events->subscribe(_fd, EVFILT_READ, this);
-//    }
-//    if (status == Connection::CGI_PROCESSING) {
+    if (status == Connection::AWAIT_NEW_REQ) {
+        this->subscribe(connection->getConnectionFd(), EVFILT_READ, connection);
+    }
+    if (status == Connection::CGI_PROCESSING) {
 //        if (!_request->getBody().empty()) {
-//            this->events->subscribe(_response->getCgi()->getRequestPipe(), EVFILT_WRITE, this);
+//            this->events->subscribe(_response->getCgi()->getRequestPipe(), EVFILT_WRITE, connection);
 //        }
-//        this->events->subscribe(_response->getCgi()->getResponsePipe(), EVFILT_READ, this);
-//        return;
-//    }
+//        this->events->subscribe(_response->getCgi()->getResponsePipe(), EVFILT_READ, connection);
+        return;
+    }
     if (status == Connection::SENDING) {
-        this->subscribe(connection, EVFILT_WRITE);
+        this->subscribe(connection->getConnectionFd(), EVFILT_WRITE, connection);
         return;
     }
     if (status == Connection::CLOSING) {
@@ -159,13 +150,10 @@ void Daemon::removeExpiredConnections() {
     }
 }
 
-void Daemon::subscribe(Connection *connection, short type) {
-    int connection_fd;
-
-    connection_fd = connection->getConnectionFd();
-    this->subscriber.insert(std::make_pair(connection_fd, connection));
-    this->connections.insert(std::make_pair(connection_fd, connection));
-    this->events->subscribe(connection_fd, type);
+void Daemon::subscribe(int fd, short type, Connection *connection) {
+    this->subscriber.insert(std::make_pair(fd, connection));
+    this->connections.insert(std::make_pair(fd, connection));
+    this->events->subscribe(fd, type);
 }
 
 void Daemon::unsubscribe(int connection_fd, short type) {

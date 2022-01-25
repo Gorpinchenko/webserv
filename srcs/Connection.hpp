@@ -16,8 +16,8 @@
 
 class Connection : public IEventSubscriber {
 private:
-    int          connection_fd;
-    std::string  buffer;
+    int             connection_fd;
+    std::string     buffer;
     bool            keep_alive;
     short           status;
     time_t          connection_timeout;
@@ -63,6 +63,7 @@ public:
     void prepareResponse();
     void prepareResponseMessage();
     void processResponse(size_t bytes, bool eof);
+    void processCgi(int fd, size_t bytes_available, int16_t filter, bool eof);
 
     class ConnectionException : public std::exception {
         const char *m_msg;

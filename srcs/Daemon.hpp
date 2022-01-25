@@ -23,8 +23,8 @@ private:
     void processEvent(Connection *connection, int fd, size_t bytes_available, int16_t filter, bool eof);
 //    void processPreviousStatus(short prev_status);
     void processCurrentStatus(Connection *connection);
-    void subscribe(Connection *connection, short type);
-    void unsubscribe(int   connection_fd, short type);
+    void subscribe(int fd, short type, Connection *connection);
+    void unsubscribe(int fd, short type);
 public:
     Daemon(Config *config, const std::map<int, Socket *> &sockets, Events *events);
     void run();

@@ -11,31 +11,19 @@ add_compile_options(-Wall -Wextra -Werror)
 add_executable(
         webserv
 
-        srcs/Config.cpp
-        srcs/Events.cpp
-        srcs/Server.cpp
-        srcs/Socket.cpp
-        srcs/Connection.cpp
-        srcs/Location.cpp
-        srcs/Daemon.cpp
-        srcs/AHttpMessage.cpp
-        srcs/HttpRequest.cpp
-        srcs/HttpResponse.cpp
-        srcs/utils/Print.cpp
-        srcs/utils/Path.cpp
         srcs/main.cpp
-
-        srcs/Config.hpp
-        srcs/Events.hpp
-        srcs/Server.hpp
-        srcs/Socket.hpp
-        srcs/Connection.hpp
-        srcs/Location.hpp
-        srcs/Daemon.hpp
-        srcs/AHttpMessage.hpp
-        srcs/HttpRequest.hpp
-        srcs/HttpResponse.hpp
-        srcs/utils/Print.hpp
-        srcs/utils/Path.hpp
+        srcs/Config.cpp srcs/Config.hpp
+        srcs/Server.cpp srcs/Server.hpp
+        srcs/Location.cpp srcs/Location.hpp
+        srcs/Daemon.cpp srcs/Daemon.hpp
+        srcs/Events.cpp srcs/Events.hpp
         srcs/IEventSubscriber.hpp
+        srcs/Socket.cpp srcs/Socket.hpp
+        srcs/Connection.cpp srcs/Connection.hpp
+        srcs/AHttpMessage.cpp srcs/AHttpMessage.hpp
+        srcs/HttpRequest.cpp srcs/HttpRequest.hpp
+        srcs/HttpResponse.cpp srcs/HttpResponse.hpp
+        srcs/Cgi.cpp srcs/Cgi.hpp
+        srcs/utils/Print.cpp srcs/utils/Print.hpp
+        srcs/utils/Path.cpp srcs/utils/Path.hpp
 )

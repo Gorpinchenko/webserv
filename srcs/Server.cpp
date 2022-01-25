@@ -131,7 +131,6 @@ const Location *Server::getLocationFromRequestUri(const std::string &uri) {
             break;
         }
 
-        std::cout << "(*it)->getCgiPass() " << (*it)->getCgiPass() << std::endl;
         if (!(*it)->getCgiPass().empty() && !uri_ext.empty()) {
             dot_pos = path.find_last_of('.');
             if (dot_pos != std::string::npos) {

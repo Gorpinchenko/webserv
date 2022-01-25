@@ -15,6 +15,7 @@
 #include "AHttpMessage.hpp"
 #include "HttpRequest.hpp"
 #include "Server.hpp"
+#include "Cgi.hpp"
 #include "./utils/Path.hpp"
 
 class HttpRequest;
@@ -30,13 +31,13 @@ private:
 //    std::map<std::string, std::string> _response_headers;
     std::string       body;
     std::size_t       body_size;
-//    CgiHandler                         *_cgi;
     std::vector<char> _headers_vec;//todo delete
     size_t            pos;
 //    const VirtualServer                *_config;
     const Location    *location;
     Server            *server;
     HttpRequest       *request;
+    Cgi               *cgi;
 
     HTTPStatus writeFileToBuffer(const std::string &file_path);
     void setError(HTTPStatus code);
@@ -115,6 +116,8 @@ public:
     static const std::string &getReasonForStatus(HTTPStatus status);
     void setResponseString(HTTPStatus status);
 
+    bool isCgi();
+    void processCgiRequest(const std::string &ip);
     void processGetRequest();
     void processPostRequest();
     void processDeleteRequest();
