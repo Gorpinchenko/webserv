@@ -17,6 +17,7 @@
 #include "Server.hpp"
 #include "Cgi.hpp"
 #include "./utils/Path.hpp"
+#include "./utils/MimeType.hpp"
 
 class HttpRequest;
 
