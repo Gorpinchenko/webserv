@@ -120,10 +120,43 @@ void Location::setRedirection(std::string const &redirection)
 }
 
 bool Location::methodAllowed(const std::string &method) const {
-    (void)method;
-    return false;//todo
+    if (method == "GET") {
+        return (_methods[0]);
+    } else if (method == "POST") {
+        return (_methods[1]);
+    } else if (method == "DELETE") {
+        return (_methods[2]);
+    } else if (method == "PUT") {
+        return (_methods[3]);
+    } else {
+        return false;
+    }
 }
 
 std::string Location::getAllowedMethodsField() const {
-    return std::string();
+    std::string result;
+
+    if (_methods[0]) {
+        result.insert(0, "GET");
+    }
+    if (_methods[1]) {
+        if (!result.empty()) {
+            result.insert(0, ", ");
+        }
+        result.insert(0, "POST");
+    }
+    if (_methods[2]) {
+        if (!result.empty()) {
+            result.insert(0, ", ");
+        }
+        result.insert(0, "DELETE");
+    }
+    if (_methods[3]) {
+        if (!result.empty()) {
+            result.insert(0, ", ");
+        }
+        result.insert(0, "PUT");
+    }
+
+    return result;
 }

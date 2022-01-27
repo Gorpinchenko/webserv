@@ -69,7 +69,7 @@ void HttpResponse::setResponseString(HTTPStatus status) {
 }
 
 bool HttpResponse::isCgi() {
-    return !(this->location->getCgiPass().empty()) && (this->cgi != nullptr);
+    return (this->location != nullptr) && !(this->location->getCgiPass().empty()) && (this->cgi != nullptr);
 }
 
 void HttpResponse::processCgiRequest(const std::string &ip) {
