@@ -16,6 +16,10 @@ HttpResponse::HttpResponse(Server *server, HttpRequest *request)
 //        return;
 //    }
 
+    if (this->server == nullptr) {
+        this->setError(HttpResponse::HTTP_BAD_REQUEST);
+    }
+
     std::string uri = this->request->getUriNoQuery();
     this->location = this->server->getLocationFromRequestUri(uri);
     if (this->location == nullptr) {
@@ -55,7 +59,6 @@ HttpResponse::HttpResponse(Server *server, HttpRequest *request)
         this->cgi = new Cgi();
     }
 }
-
 
 uint16_t HttpResponse::getStatusCode() const {
     return this->status_code;

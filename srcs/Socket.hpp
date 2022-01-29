@@ -12,12 +12,14 @@
 
 class Socket : public IEventSubscriber {
 private:
-    Server *server;
+    std::vector<Server *>servers;
     int    fd;
 public:
     Socket(Server *server);
     int getFd() const;
-    Server *getServer() const;
+    std::vector<Server *> getServers() const;
+    Server *getDefaultServer() const;
+    void appendServer(Server *server);
 
     class SocketException : public std::exception {
         const char *m_msg;

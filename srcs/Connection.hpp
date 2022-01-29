@@ -29,14 +29,14 @@ private:
 
     HttpRequest  *request;
     HttpResponse *response;
-    Server       *server;
+    std::vector<Server *>servers;
 
     static const int DEFAULT_TIMEOUT = 2;
 
     void parseRequestMessage(size_t &pos);
     void appendBody(size_t &pos);
     bool parseChunked(unsigned long &pos, unsigned long bytes);
-//    bool findRouteSetResponse();
+    Server *getServer();
     std::string getIp();
 public:
     enum Status {

@@ -10,7 +10,7 @@ Connection::Connection(Socket *socket)
           skip_n(0), //todo поменять название или вынести отсюда
           request(nullptr),
           response(nullptr),
-          server(socket->getServer()) {
+          servers(socket->getServers()) {
     std::time(&this->connection_timeout);
     int       new_fd;
     socklen_t s_len;
@@ -86,7 +86,7 @@ void Connection::prepareResponse() {
     if (this->response == nullptr) {//todo потом удалить наверно
 //        this->response = new HttpResponse(this->server, static_cast<HttpResponse::HTTPStatus>(this->request->getParsingError()));
         //TODO мб тут проверять, что нет правил для такого запроса
-        this->response = new HttpResponse(this->server, this->request);
+        this->response = new HttpResponse(this->getServer(), this->request);
     }
 
     this->prepareResponseMessage();
@@ -169,7 +169,6 @@ void Connection::parseRequestMessage(size_t &pos) {
      && this->request->parseHeaders(buff, pos)
      && this->request->processUri()
      && this->request->processHeaders()
-     //     && this->findRouteSetResponse()
      && this->request->checkContentLength());
 
     if (this->request->getParsingError() != HttpResponse::HTTP_OK
@@ -304,28 +303,6 @@ bool Connection::parseChunked(unsigned long &pos, unsigned long bytes) {
     return (false);
 }
 
-//bool Connection::findRouteSetResponse() {
-//    return true;
-//    VirtualServer *serv = nullptr;
-//    HttpResponse  *resp = nullptr;
-//
-//    serv = sock->getServerByHostHeader(_header_fields);
-//    if (serv == nullptr) {
-//        _parsing_error = HttpResponse::HTTP_BAD_REQUEST;
-//        return (false);
-//    }
-//    try {
-//        resp = new HttpResponse(*sess, serv);
-//        sess->setResponse(resp);
-//        _max_body_size = resp->getMaxBodySize();
-//        return (true);
-//    }
-//    catch (std::exception &e) {
-//        _parsing_error = HttpResponse::HTTP_INTERNAL_SERVER_ERROR;
-//        return (false);
-//    }
-//}
-
 bool Connection::isShouldClose() {
     if ((!this->keep_alive && this->status == AWAIT_NEW_REQ) || this->status == CLOSING) {
         return true;
@@ -352,6 +329,33 @@ std::string &Connection::getBuffer() {
 
 void Connection::clearBuffer() {
     this->buffer.clear();
+}
+
+Server *Connection::getServer() {
+    std::map<std::string, std::string>                 &headers = this->request->getHeaders();
+    std::map<std::string, std::string>::const_iterator it;
+    std::vector<Server *>::const_iterator              server_it;
+    std::string                                        host;
+
+    it = headers.find("Host");
+
+    if (it == headers.end()) {
+        return nullptr;
+    }
+
+    host = it->second.substr(0, it->second.find(":"));
+
+    if (!host.empty()) {
+        server_it = this->servers.begin();
+        while (server_it != this->servers.end()) {
+            if ((*server_it)->getServerName() == host) {
+                return *server_it;
+            }
+            server_it++;
+        }
+    }
+
+    return this->servers[0];
 }
 
 Connection::ConnectionException::ConnectionException(const char *msg) : m_msg(msg) {}

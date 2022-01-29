@@ -1,10 +1,12 @@
 #include "Socket.hpp"
 
 
-Socket::Socket(Server *server) : server(server) {
+Socket::Socket(Server *server) {
     int         socket_fd;
     int         opt  = 1;
     sockaddr_in addr = {};
+
+    this->appendServer(server);
 
     socket_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (socket_fd == -1) {
@@ -16,8 +18,8 @@ Socket::Socket(Server *server) : server(server) {
     memset(addr.sin_zero, 0, 8);
     addr.sin_len         = sizeof(addr);
     addr.sin_family      = AF_INET;
-    addr.sin_port        = htons(this->server->getPort());
-    addr.sin_addr.s_addr = this->server->getHost();
+    addr.sin_port        = htons(server->getPort());
+    addr.sin_addr.s_addr = server->getHost();
 
     if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int)) == -1
         || fcntl(socket_fd, F_SETFL, O_NONBLOCK) == -1
@@ -32,8 +34,16 @@ int Socket::getFd() const {
     return this->fd;
 }
 
-Server *Socket::getServer() const {
-    return this->server;
+Server *Socket::getDefaultServer() const {
+    return this->servers[0];
+}
+
+std::vector<Server *> Socket::getServers() const {
+    return this->servers;
+}
+
+void Socket::appendServer(Server *server) {
+    this->servers.push_back(server);
 }
 
 Socket::SocketException::SocketException(const char *msg) : m_msg(msg) {}
