@@ -39,10 +39,10 @@ const char *MimeType::getType(const std::string &file_path)
 {
     std::string ext = file_path.substr(file_path.find_last_of('.') + 1);
     if (ext.empty())
-        return ("application/octet-stream");
+        return "application/octet-stream";
     std::multimap<std::string, std::string>::iterator res = _types.find(ext);
     if (res == _types.end())
-        return ("application/octet-stream");
+        return "application/octet-stream";
     return res->second.data();
 }
 
@@ -74,12 +74,10 @@ void MimeType::tokenizeFileStream(std::string const &file_path, std::list<std::s
                 if (std::isspace(*it) || *it == ';') {
                     if (!token.empty()) {
                         res.push_back(std::string(token));
-                        std::cout << token << std::endl; //TODO удалить
                         token.clear();
                     }
                     if (*it == ';') {
                         res.push_back(std::string(1, *it));
-                        std::cout << std::string(1, *it) << std::endl; //TODO удалить
                     }
                     continue;
                 }

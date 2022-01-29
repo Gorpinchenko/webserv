@@ -214,7 +214,7 @@ HttpResponse::HTTPStatus HttpResponse::writeFileToBuffer(const std::string &file
             return HTTP_INTERNAL_SERVER_ERROR;
         }
         file.close();
-        this->setHeader("Content-Type", MimeType::getType(file_path));//todo проверить, работает или нет
+        this->setHeader("Content-Type", MimeType::getType(file_path));
 
         return HTTP_OK;
     } else {

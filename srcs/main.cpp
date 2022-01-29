@@ -27,6 +27,7 @@ void run(const std::string &path_to_file) {
     config  = new Config(path_to_file);
     events  = new Events(1000);
     servers = config->getServers();
+    MimeType("./config/mime.conf");
 
     if (!servers.empty()) {
         std::vector<Server *>::iterator servers_it;
