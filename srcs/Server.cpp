@@ -151,6 +151,12 @@ const Location *Server::getLocationFromRequestUri(const std::string &uri) {
 }
 
 std::string Server::getCustomErrorPagePath(short code) const {
-    (void)code;
-    return std::string();
+    std::map<short, std::string>::const_iterator it;
+
+    it = _error_pages.find(code);
+    if (it == _error_pages.end()) {
+        return "";
+    } else {
+        return it->second;
+    }
 }
