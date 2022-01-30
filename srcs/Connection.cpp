@@ -175,6 +175,7 @@ bool Connection::writeCgi(size_t bytes, bool eof) {
 
 bool Connection::readCgi(size_t bytes, bool eof) {
     if (this->response->readCgi(bytes, eof)) {
+        this->status = SENDING;
         return (true);
     } else
         return (false);
