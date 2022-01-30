@@ -21,7 +21,7 @@ private:
     static void registerSignal();
     void removeExpiredConnections();
     void processEvent(Connection *connection, int fd, size_t bytes_available, int16_t filter, bool eof);
-//    void processPreviousStatus(short prev_status);
+    void processPreviousStatus(Connection *connection, short prev_status);
     void processCurrentStatus(Connection *connection);
     void subscribe(int fd, short type, Connection *connection);
     void unsubscribe(int fd, short type);
