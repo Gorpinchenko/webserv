@@ -11,6 +11,7 @@ class HttpRequest;
 class Cgi {
     std::string                         _path;
     std::map<std::string, std::string>	_env;
+    char**                              _arr;
 
     int                                 _reqFd;
     int                                 _resFd;

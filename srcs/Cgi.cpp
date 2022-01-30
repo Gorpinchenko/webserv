@@ -6,9 +6,17 @@ Cgi::Cgi(const std::string& path)
     _reqFd = -1;
     _resFd = -1;
     _pos = 0;
+    _arr = nullptr;
 }
 
-Cgi::~Cgi() {}
+Cgi::~Cgi() {
+    if (_arr != nullptr) {
+        for (int i = 0; _arr[i]; ++i) {
+            delete _arr[i];
+        }
+        delete _arr;
+    }
+}
 
 const std::string &Cgi::getPath() const {
     return _path;
@@ -87,6 +95,7 @@ char **Cgi::getEnvAsArray(HttpRequest *request, std::string ip, std::string path
         j++;
     }
     env[j] = NULL;
+    _arr = env;
     return env;
 }
 

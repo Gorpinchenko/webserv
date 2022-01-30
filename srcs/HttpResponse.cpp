@@ -75,15 +75,15 @@ bool HttpResponse::isCgi() {
     return (this->location != nullptr) && !(this->location->getCgiPass().empty()) && (this->cgi != nullptr);
 }
 
+/**
+ * CGI exec
+ * @param ip
+ */
 void HttpResponse::processCgiRequest(const std::string &ip) {
-    /**
-     * CGI exec
-     */
-
     char  *argv[2];
-    int   in_pipe[2];
-    int   out_pipe[2];
-    pid_t child_pid;
+    int   in[2];
+    int   out[2];
+    pid_t pid;
     int   res;
     char  **env = this->cgi->getEnvAsArray(this->request, ip, this->location->getPath(), this->server->getPort());
     std::string cgiPass = this->cgi->getPath();
@@ -95,58 +95,46 @@ void HttpResponse::processCgiRequest(const std::string &ip) {
     argv[0] = const_cast<char *>(this->request->getAbsolutPath().data());
     argv[1] = nullptr;
 
-    if (pipe(in_pipe) < 0) {
-        for (int i = 0; env[i] != nullptr; ++i) {
-            delete env[i];
-        }
-        delete env;
+    if (pipe(in) < 0) {
+        delete this->cgi;
         this->setError(HTTP_INTERNAL_SERVER_ERROR);
         return;
     }
-    if (pipe(out_pipe) < 0) {
-        for (int i = 0; env[i]; ++i) {
-            delete env[i];
-        }
-        delete env;
-        close(in_pipe[0]);
-        close(in_pipe[1]);
+    if (pipe(out) < 0) {
+        delete this->cgi;
+        close(in[0]);
+        close(in[1]);
         this->setError(HTTP_INTERNAL_SERVER_ERROR);
         return;
     }
-    child_pid = fork();
-    if (child_pid == 0) {
-        if (dup2(in_pipe[0], 0) == -1 || dup2(out_pipe[1], 1) == -1 || dup2(out_pipe[1], 2) == -1) {
+    pid = fork();
+    if (pid == 0) {
+        if (dup2(in[0], 0) == -1 || dup2(out[1], 1) == -1 || dup2(out[1], 2) == -1) {
             exit(1);
         }
-        close(in_pipe[0]);
-        close(in_pipe[1]);
-        close(out_pipe[0]);
-        close(out_pipe[1]);
-        res = execve(cgiPass.c_str(), argv, env);
-        exit(res); // Вот здесь пока не понятно что делать
-    } else if (child_pid > 0) {
-        for (int i = 0; env[i]; ++i) {
-            delete env[i];
-        }
-        delete env;
-        close(in_pipe[0]);
+        close(in[0]);
+        close(in[1]);
+        close(out[0]);
+        close(out[1]);
+        res = execve(cgiPass.data(), argv, env);
+        exit(res);
+    } else if (pid > 0) {
+        delete this->cgi;
+        close(in[0]);
         if (request->getContentLength() > 0) {
-            this->cgi->setReqFd(in_pipe[1]);
+            this->cgi->setReqFd(in[1]);
         } else {
-            close(in_pipe[1]);
+            close(in[1]);
         }
-        close(out_pipe[1]);
-        this->cgi->setPid(child_pid);
-        this->cgi->setResFd(out_pipe[0]);
+        close(out[1]);
+        this->cgi->setPid(pid);
+        this->cgi->setResFd(out[0]);
     } else {
-        for (int i = 0; env[i]; ++i) {
-            delete env[i];
-        }
-        delete env;
-        close(in_pipe[0]);
-        close(in_pipe[1]);
-        close(out_pipe[0]);
-        close(out_pipe[1]);
+        delete this->cgi;
+        close(in[0]);
+        close(in[1]);
+        close(out[0]);
+        close(out[1]);
         this->setError(HTTP_INTERNAL_SERVER_ERROR);
     }
     this->setResponseString(HTTP_OK);
