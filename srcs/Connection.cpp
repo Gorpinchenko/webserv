@@ -113,6 +113,9 @@ void Connection::prepareResponseMessage() {
     if (this->response->getStatusCode() != HttpRequest::HTTP_OK && this->response->getStatusCode() != 0) {
         return;
     }
+    /**
+     * CGI process
+     */
     if (this->response->isCgi()) {
         this->response->processCgiRequest(this->getIp());
     } else if (this->request->getMethod() == "GET") {
@@ -150,15 +153,32 @@ void Connection::processResponse(size_t bytes, bool eof) {
 }
 
 void Connection::processCgi(int fd, size_t bytes_available, int16_t filter, bool eof) {
-    (void) fd;
-    (void) bytes_available;
-    (void) filter;
-    (void) eof;
-//    if (filter == EVFILT_WRITE && fd == this->response->getCgi()->getRequestPipe()) {
-//        writeCgi(bytes_available, eof);
-//    } else if (ilter == EVFILT_READ && fd == this->response->getCgi()->getResponsePipe()) {
-//        readCgi(bytes_available, eof);
-//    }
+    /**
+     * Здесь что-то
+     */
+    if (filter == EVFILT_WRITE && fd == this->response->getCgi()->getReqFd()) {
+        std::cout << "write" << std::endl;
+        writeCgi(bytes_available, eof);
+    } else if (filter == EVFILT_READ && fd == this->response->getCgi()->getResFd()) {
+        std::cout << "read" << std::endl;
+        readCgi(bytes_available, eof);
+    }
+}
+
+bool Connection::writeCgi(size_t bytes, bool eof) {
+    if (eof && this->response->getCgi()->getPos() < this->request->getBody().size()) {
+        return (true);
+    } else if (this->response->writeToCgi(this->request, bytes))
+        return (true);
+    return (false);
+}
+
+bool Connection::readCgi(size_t bytes, bool eof) {
+    if (this->response->readCgi(bytes, eof)) {
+        return (true);
+    } else
+        return (false);
+
 }
 
 void Connection::parseRequestMessage(size_t &pos) {
@@ -356,6 +376,14 @@ Server *Connection::getServer() {
     }
 
     return this->servers[0];
+}
+
+HttpResponse *Connection::getResponse() const {
+    return response;
+}
+
+void Connection::setResponse(HttpResponse *_response) {
+    Connection::response = _response;
 }
 
 Connection::ConnectionException::ConnectionException(const char *msg) : m_msg(msg) {}

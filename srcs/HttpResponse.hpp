@@ -12,6 +12,7 @@
 //#include <sys/types.h>
 //#include <sys/wait.h>
 
+#include <unistd.h>
 #include "AHttpMessage.hpp"
 #include "HttpRequest.hpp"
 #include "Server.hpp"
@@ -20,6 +21,7 @@
 #include "./utils/MimeType.hpp"
 
 class HttpRequest;
+class Cgi;
 
 class HttpResponse : public AHttpMessage {
 private:
@@ -124,7 +126,17 @@ public:
     void processDeleteRequest();
     void processPutRequest();
 
+    Cgi *getCgi() const;
+
+    void setCgi(Cgi *_cgi);
+
     int send(int fd, size_t bytes);
+
+    bool writeToCgi(HttpRequest *req, size_t bytes);
+
+    bool readCgi(size_t bytes, bool eof);
+
+    bool ParseCgiHeaders(size_t end);
 
 //    void processDeleteRequest(const VirtualServer *pServer, HttpRequest *req);
 };

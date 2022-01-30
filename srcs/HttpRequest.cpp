@@ -197,3 +197,7 @@ bool HttpRequest::checkContentLength() {
     }
     return true;
 }
+
+const std::string &HttpRequest::getQueryString() const {
+    return query_string;
+}

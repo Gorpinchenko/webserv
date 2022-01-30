@@ -74,6 +74,14 @@ public:
 
         const char *what() const throw();
     };
+
+    bool writeCgi(size_t bytes, bool eof);
+
+    bool readCgi(size_t bytes, bool eof);
+
+    HttpResponse *getResponse() const;
+
+    void setResponse(HttpResponse *_response);
 };
 
 #endif //WEBSERV_CONNECTION_HPP

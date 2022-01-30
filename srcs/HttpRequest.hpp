@@ -57,6 +57,8 @@ public:
     bool processUri();
     bool processHeaders();
     bool checkContentLength();
+
+    const std::string &getQueryString() const;
 };
 
 #endif //WEBSERV_HTTPREQUEST_HPP

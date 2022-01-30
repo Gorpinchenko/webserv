@@ -113,10 +113,13 @@ void Daemon::processCurrentStatus(Connection *connection) {
         this->subscribe(connection->getConnectionFd(), EVFILT_READ, connection);
     }
     if (status == Connection::CGI_PROCESSING) {
-//        if (!_request->getBody().empty()) {
-//            this->events->subscribe(_response->getCgi()->getRequestPipe(), EVFILT_WRITE, connection);
-//        }
-//        this->events->subscribe(_response->getCgi()->getResponsePipe(), EVFILT_READ, connection);
+        /**
+         * Здесь что-то
+         */
+        if (!connection->getRequest()->getBody().empty()) {
+            this->subscribe(connection->getResponse()->getCgi()->getReqFd(), EVFILT_WRITE, connection);
+        }
+        this->subscribe(connection->getResponse()->getCgi()->getResFd(), EVFILT_READ, connection);
         return;
     }
     if (status == Connection::SENDING) {

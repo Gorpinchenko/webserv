@@ -56,7 +56,7 @@ HttpResponse::HttpResponse(Server *server, HttpRequest *request)
         return;
     }
     if (!this->location->getCgiPass().empty()) {
-        this->cgi = new Cgi();
+        this->cgi = new Cgi(this->location->getCgiPass());
     }
 }
 
@@ -76,13 +76,80 @@ bool HttpResponse::isCgi() {
 }
 
 void HttpResponse::processCgiRequest(const std::string &ip) {
-    (void) ip;
-//    this->cgi->prepareCgiEnv(req, req->getNormalizedPath(), ip, std::to_string(_config->getPort()), _loc->getCgiPass());
-//    this->cgi->setCgiPath(this->location->getCgiPass());
-//    if (this->executeCgi(req) != HTTP_OK) {
-//        delete this->cgi;
-//        this->setError(HTTP_INTERNAL_SERVER_ERROR);
-//    }
+    /**
+     * CGI exec
+     */
+
+    char  *argv[2];
+    int   in_pipe[2];
+    int   out_pipe[2];
+    pid_t child_pid;
+    int   res;
+    char  **env = this->cgi->getEnvAsArray(this->request, ip, this->location->getPath(), this->server->getPort());
+    std::string cgiPass = this->cgi->getPath();
+
+    if (env == nullptr) {
+        this->setError(HTTP_INTERNAL_SERVER_ERROR);
+    }
+
+    argv[0] = const_cast<char *>(this->request->getAbsolutPath().data());
+    argv[1] = nullptr;
+
+    if (pipe(in_pipe) < 0) {
+        for (int i = 0; env[i] != nullptr; ++i) {
+            delete env[i];
+        }
+        delete env;
+        this->setError(HTTP_INTERNAL_SERVER_ERROR);
+        return;
+    }
+    if (pipe(out_pipe) < 0) {
+        for (int i = 0; env[i]; ++i) {
+            delete env[i];
+        }
+        delete env;
+        close(in_pipe[0]);
+        close(in_pipe[1]);
+        this->setError(HTTP_INTERNAL_SERVER_ERROR);
+        return;
+    }
+    child_pid = fork();
+    if (child_pid == 0) {
+        if (dup2(in_pipe[0], 0) == -1 || dup2(out_pipe[1], 1) == -1 || dup2(out_pipe[1], 2) == -1) {
+            exit(1);
+        }
+        close(in_pipe[0]);
+        close(in_pipe[1]);
+        close(out_pipe[0]);
+        close(out_pipe[1]);
+        res = execve(cgiPass.c_str(), argv, env);
+        exit(res); // Вот здесь пока не понятно что делать
+    } else if (child_pid > 0) {
+        for (int i = 0; env[i]; ++i) {
+            delete env[i];
+        }
+        delete env;
+        close(in_pipe[0]);
+        if (request->getContentLength() > 0) {
+            this->cgi->setReqFd(in_pipe[1]);
+        } else {
+            close(in_pipe[1]);
+        }
+        close(out_pipe[1]);
+        this->cgi->setPid(child_pid);
+        this->cgi->setResFd(out_pipe[0]);
+    } else {
+        for (int i = 0; env[i]; ++i) {
+            delete env[i];
+        }
+        delete env;
+        close(in_pipe[0]);
+        close(in_pipe[1]);
+        close(out_pipe[0]);
+        close(out_pipe[1]);
+        this->setError(HTTP_INTERNAL_SERVER_ERROR);
+    }
+    this->setResponseString(HTTP_OK);
 }
 
 void HttpResponse::processGetRequest() {
@@ -516,6 +583,110 @@ const std::string HttpResponse::HTTP_REASON_LOOP_DETECTED                   = "L
 const std::string HttpResponse::HTTP_REASON_NOT_EXTENDED                    = "Not Extended";
 const std::string HttpResponse::HTTP_REASON_NETWORK_AUTHENTICATION_REQUIRED = "Network Authentication Required";
 const std::string HttpResponse::HTTP_REASON_UNKNOWN                         = "???";
+
+Cgi *HttpResponse::getCgi() const {
+    return cgi;
+}
+
+void HttpResponse::setCgi(Cgi *_cgi) {
+    HttpResponse::cgi = _cgi;
+}
+
+bool HttpResponse::writeToCgi(HttpRequest *req, size_t bytes) {
+    int    fd = this->cgi->getReqFd();
+    int    res;
+    size_t size;
+
+    if (req->getBody().size() - this->cgi->getPos() > bytes)
+        size = bytes;
+    else
+        size = req->getBody().size() - this->cgi->getPos();
+    res      = write(fd, req->getBody().data() + this->cgi->getPos(), size);
+    if (res > 0) {
+        this->cgi->setPos(this->cgi->getPos() + res);
+    } else if (req->getBody().size() - this->cgi->getPos() > 0 && res == 0) {
+        return (false);
+    } else if (this->cgi->getPos() == req->getBody().size()) {
+        this->cgi->setPos(0);
+        return (true);
+    } else {
+        this->setError(HTTP_INTERNAL_SERVER_ERROR);
+        return (true);
+    }
+
+    return (false);
+}
+
+bool HttpResponse::readCgi(size_t bytes, bool eof) {
+    char tmp[1048576];
+    int  res;
+    int  fd = this->cgi->getResFd();
+
+    res = read(fd, &tmp, bytes);
+    if (res < 0) {
+        return (false);
+    }
+    body.append(tmp, bytes);
+    std::string::size_type pos_;
+    if (!this->cgi->isHeadersParsed() && (pos_ = body.find("\r\n\r\n")) != std::string::npos) {
+        if (!ParseCgiHeaders(pos_)) {
+            this->setError(HTTP_INTERNAL_SERVER_ERROR);
+            close(fd);
+            return (false);
+        }
+        this->cgi->setHeadersParsed(true);
+        body.erase(body.begin(), body.begin() + pos_ + 4);
+    }
+    if (eof || res == 0) {
+        body_size = body.size();
+        setHeader("Content-Length", std::to_string(body_size));
+        this->setResponseString(HTTP_OK);
+        return (true);
+    }
+    return (false);
+}
+
+bool parse(const std::string &src, std::size_t &token_start, const std::string &token_delim, bool delim_exact,
+           std::size_t max_len,
+           std::string &token) {
+    token_start = src.find_first_not_of(" \t\r\n", token_start);
+    if (token_start == std::string::npos)
+        return (false);
+    std::size_t line_end = src.find_first_of("\r\n", token_start);
+    if (line_end == std::string::npos)
+        line_end = src.length();
+    std::size_t token_end = src.find_first_of(token_delim, token_start);
+    if (token_end == std::string::npos && delim_exact)
+        return false;
+    if (token_end == std::string::npos)
+        token_end = line_end;
+    token         = src.substr(token_start, token_end - token_start);
+    if (token.empty() || token.length() > max_len)
+        return (false);
+    token_start = token_end;
+    return (true);
+}
+
+bool HttpResponse::ParseCgiHeaders(size_t end) {
+    std::string field_name;
+    std::string field_value;
+
+    size_t i = 0;
+
+    while (i < end && body.find("\r\n\r\n", i) != i) {
+        if (!parse(body, i, ":", true, HttpRequest::MAX_NAME, field_name))
+            break;
+        if (!parse(body, ++i, "\r\n", false, HttpRequest::MAX_VALUE, field_value))
+            break;
+        setHeader(field_name, field_value);
+//        _response_headers.insert(std::make_pair(field_name, field_value));
+    }
+    if (i != end) {
+        this->setError(HTTP_INTERNAL_SERVER_ERROR);
+        return (false);
+    }
+    return (true);
+}
 
 //const std::string HttpResponse::DATE                                        = "Date";
 //const std::string HttpResponse::SET_COOKIE                                  = "Set-Cookie";
