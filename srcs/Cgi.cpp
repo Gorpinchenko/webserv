@@ -32,7 +32,7 @@ char **Cgi::getEnvAsArray(HttpRequest *request, std::string ip, std::string path
     if (!headers.count("Auth-Scheme") && !headers["Auth-Scheme"].empty()) {
         _env["AUTH_TYPE"] = headers["Authorization"];
     }
-    _env["REDIRECT_STATUS"] = "200";
+    _env["REDIRECT_STATUS"] = "CGI";
     _env["GATEWAY_INTERFACE"] = "CGI/1.1";
 
     _env["SCRIPT_NAME"] = path;
