@@ -113,9 +113,6 @@ void Connection::prepareResponseMessage() {
     if (this->response->getStatusCode() != HttpRequest::HTTP_OK && this->response->getStatusCode() != 0) {
         return;
     }
-    /**
-     * CGI process
-     */
     if (this->response->isCgi()) {
         this->response->processCgiRequest(this->getIp());
     } else if (this->request->getMethod() == "GET") {
@@ -152,34 +149,25 @@ void Connection::processResponse(size_t bytes, bool eof) {
     std::time(&this->connection_timeout);
 }
 
+/**
+ * CGI write/read
+ *
+ * @param fd
+ * @param bytes_available
+ * @param filter
+ * @param eof
+ */
 void Connection::processCgi(int fd, size_t bytes_available, int16_t filter, bool eof) {
-    /**
-     * Здесь что-то
-     */
     if (filter == EVFILT_WRITE && fd == this->response->getCgi()->getReqFd()) {
-        std::cout << "write" << std::endl;
-        writeCgi(bytes_available, eof);
+        if (eof && this->response->getCgi()->getPos() < this->request->getBody().size()) {
+            return;
+        }
+        this->response->writeToCgi(this->request, bytes_available);
     } else if (filter == EVFILT_READ && fd == this->response->getCgi()->getResFd()) {
-        std::cout << "read" << std::endl;
-        readCgi(bytes_available, eof);
+        if (this->response->readCgi(bytes_available, eof)) {
+            this->status = SENDING;
+        }
     }
-}
-
-bool Connection::writeCgi(size_t bytes, bool eof) {
-    if (eof && this->response->getCgi()->getPos() < this->request->getBody().size()) {
-        return (true);
-    } else if (this->response->writeToCgi(this->request, bytes))
-        return (true);
-    return (false);
-}
-
-bool Connection::readCgi(size_t bytes, bool eof) {
-    if (this->response->readCgi(bytes, eof)) {
-        this->status = SENDING;
-        return (true);
-    } else
-        return (false);
-
 }
 
 void Connection::parseRequestMessage(size_t &pos) {
