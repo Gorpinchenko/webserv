@@ -20,6 +20,7 @@ public:
     static std::string getFullPath(const std::string &loc_path, const std::string &root, const std::string &uri);
     static void removeLocFromUri(const std::string &location, std::string &uri);
     static std::list<std::string> toSlashList(const std::string &s);
+    static std::string urlDecode(std::string &src);
 };
 
 #endif //WEBSERV_PATH_HPP

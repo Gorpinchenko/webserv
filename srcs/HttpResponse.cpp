@@ -251,17 +251,15 @@ void HttpResponse::setError(HTTPStatus code) {
 }
 
 void HttpResponse::prepareData() {
-//    std::cout << "HttpResponse::prepareData" << std::endl;
     std::map<std::string, std::string>::iterator it  = headers.begin();
     time_t                                       now = time(nullptr);
     char                                         buf[100];
 
     this->setHeader("Content-Length", std::to_string(body_size));
-//    setTimeHeader();
 
     std::strftime(buf, 100, "%a, %d %b %Y %H:%M:%S %Z", gmtime(&now));
     this->setHeader("Date", buf);
-    this->setHeader("Server", "mg_webserv/0.01");
+    this->setHeader("Server", "webserv/1.0");
 
     if ((it = headers.find("Status")) != headers.end()) {
         headers.erase(it);
@@ -285,8 +283,8 @@ int HttpResponse::send(int fd, size_t bytes) {
     size_t  pos_var = 0;
     ssize_t res     = 0;
 
-//    if (_headers_vec.empty())
-    prepareData();
+    if (_headers_vec.empty())
+        prepareData();
     size_t to_send = 0;
     if (this->pos < _headers_vec.size()) {
         pos_var = this->pos;

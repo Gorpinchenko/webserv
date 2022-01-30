@@ -187,3 +187,22 @@ std::list<std::string> Path::toSlashList(const std::string &s) {
     }
     return slashList;
 }
+
+std::string Path::urlDecode(std::string &src) {
+    std::string output;
+    char        ch;
+    unsigned    i, ii;
+
+    for (i = 0; i < src.length(); i++) {
+        if (int(src[i]) == 37) {
+            sscanf(src.substr(i + 1, 2).c_str(), "%x", &ii);
+            ch = static_cast<char>(ii);
+            output += ch;
+            i  = i + 2;
+        } else {
+            output += src[i];
+        }
+    }
+
+    return output;
+}

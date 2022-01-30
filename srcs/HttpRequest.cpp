@@ -97,6 +97,7 @@ bool HttpRequest::parseRequestLine(const std::string &request, size_t &pos) {
         this->parsing_error = HttpResponse::HTTP_REQUEST_URI_TOO_LONG;
         return false;
     }
+    this->request_uri = Path::urlDecode(this->request_uri);
 
     if (!this->parse(request, pos, "\r\n", false, MAX_V, this->http_v) ||
         (this->http_v != "HTTP/1.1" && this->http_v != "HTTP/1.0")) {
