@@ -52,7 +52,6 @@ void Connection::parseRequest(size_t bytes_available) {
 //        end();
     }
     this->buffer.append(res);
-//    std::cout << this->buffer.data() << std::endl;
 
     if (this->request == nullptr) {
         this->request = new HttpRequest();
@@ -144,7 +143,7 @@ void Connection::processResponse(size_t bytes, bool eof) {
             this->response = nullptr;
         }
     } else if (res == -1) {
-//        end();
+//        end();//todo
     }
     std::time(&this->connection_timeout);
 }
@@ -172,16 +171,20 @@ void Connection::processCgi(int fd, size_t bytes_available, int16_t filter, bool
 
 void Connection::parseRequestMessage(size_t &pos) {
     const std::string &buff = this->getBuffer();
-//    std::cout << "Connection::parseRequestMessage " << std::endl;
+    Server            *server;
+
     (this->request->headersSent(buff)
      && this->request->parseRequestLine(buff, pos)
      && this->request->parseHeaders(buff, pos)
      && this->request->processUri()
      && this->request->processHeaders()
-     && this->request->checkContentLength());
+     && (server = this->getServer())
+     && this->request->checkContentLength(server->getClientMaxBodySize()));
 
     if (this->request->getParsingError() != HttpResponse::HTTP_OK
         && this->request->getParsingError() != HttpResponse::HTTP_REQUEST_ENTITY_TOO_LARGE) {
+//        this->request->setParsingError(this->request->getParsingError());//todo разобраться, нужно или нет
+//this->setReady(true);
         return;
     }
     if (this->request->getRequestUri().empty()) {
@@ -218,7 +221,7 @@ void Connection::appendBody(size_t &pos) {
             if (buff.size() - pos > this->request->getContentLength()) {
                 this->request->setContentLength(0);
             } else {
-                len = this->request->getContentLength() - buff.size() - pos;
+                len = this->request->getContentLength() - (buff.size() - pos);
                 this->request->setContentLength(len);
             }
         } else if (buff.size() + this->request->getBody().size() - pos > this->request->getContentLength()) {
@@ -260,6 +263,7 @@ bool Connection::parseChunked(unsigned long &pos, unsigned long bytes) {
             }
             if (pos < bytes && request_buff[pos] != ';' && request_buff[pos] != '\r') {
                 this->request->setParsingError(HttpResponse::HTTP_BAD_REQUEST);
+                this->request->setReady(true);
                 return true;
             }
             this->c_bytes_left = strtoul(this->chunk_length.data(), nullptr, 16);
@@ -267,6 +271,7 @@ bool Connection::parseChunked(unsigned long &pos, unsigned long bytes) {
             if (this->c_bytes_left == 0) {
                 if (errno == ERANGE) {
                     this->request->setParsingError(HttpResponse::HTTP_REQUEST_ENTITY_TOO_LARGE);
+                    this->request->setReady(true);
 //                    _parsing_error = HttpResponse::HTTP_REQUEST_ENTITY_TOO_LARGE;
                     return (true);
                 } else {
@@ -276,8 +281,9 @@ bool Connection::parseChunked(unsigned long &pos, unsigned long bytes) {
                 }
 //            } else if (this->c_bytes_left + this->getRequest()->getBody().size() > _max_body_size) {
             } else if (this->c_bytes_left + this->getRequest()->getBody().size() >
-                       this->getRequest()->getMaxBodySize()) {
+                       this->getServer()->getClientMaxBodySize()) {
                 this->request->setParsingError(HttpResponse::HTTP_REQUEST_ENTITY_TOO_LARGE);
+//                this->setReady(true);//todo тут этой хуйни не надо
 //                _parsing_error = HttpResponse::HTTP_REQUEST_ENTITY_TOO_LARGE;
             }
             this->skip_n += 2;
@@ -357,7 +363,8 @@ Server *Connection::getServer() {
     if (!host.empty()) {
         server_it = this->servers.begin();
         while (server_it != this->servers.end()) {
-            if ((*server_it)->getServerName() == host) {
+            std::string uri = this->request->getUriNoQuery();
+            if ((*server_it)->getServerName() == host && (*server_it)->getLocationFromRequestUri(uri) != nullptr) {
                 return *server_it;
             }
             server_it++;

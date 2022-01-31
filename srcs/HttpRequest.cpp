@@ -6,13 +6,11 @@ HttpRequest::HttpRequest()
         method(),
         request_uri(),
         query_string(),
-//        normalized_path(),
         absolute_path(),
         http_v("HTTP/1.1"),
         chunked(false),
         body(),
         content_length(0),
-        max_body_size(MAX_DEFAULT_BODY_SIZE),//todo нужно брать это значение из конфига
         ready(false),
         parsing_error(HttpResponse::HTTP_OK) {}
 
@@ -33,7 +31,6 @@ uint16_t HttpRequest::getParsingError() const {
 }
 
 void HttpRequest::setParsingError(uint16_t status) {
-    this->ready         = true;
     this->parsing_error = status;
 }
 
@@ -53,10 +50,6 @@ std::string &HttpRequest::getBody() {
     return this->body;
 }
 
-unsigned long HttpRequest::getMaxBodySize() const {
-    return this->max_body_size;
-}
-
 const std::string &HttpRequest::getUriNoQuery() const {
     return this->uri_no_query;
 }
@@ -69,7 +62,7 @@ const std::string &HttpRequest::getAbsolutPath() const {
     return this->absolute_path;
 }
 
-void HttpRequest::setAbsolutPath(const std::string& path) {
+void HttpRequest::setAbsolutPath(const std::string &path) {
     this->absolute_path = path;
 }
 
@@ -78,6 +71,7 @@ bool HttpRequest::headersSent(const std::string &req) {
         if (req.find("\r\n\r\n") == std::string::npos) {
             if (req.size() > MAX_MESSAGE) {
                 this->setParsingError(HttpResponse::HTTP_BAD_REQUEST);
+                this->setReady(true);
                 return true;
             }
             return false;
@@ -191,9 +185,9 @@ bool HttpRequest::processHeaders() {
     return true;
 }
 
-bool HttpRequest::checkContentLength() {
-    if (this->content_length > this->max_body_size) {
-        this->setParsingError(HttpResponse::HTTP_REQUEST_ENTITY_TOO_LARGE);
+bool HttpRequest::checkContentLength(unsigned long size) {
+    if (this->content_length > size) {
+        this->parsing_error = HttpResponse::HTTP_REQUEST_ENTITY_TOO_LARGE;
     }
     return true;
 }

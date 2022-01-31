@@ -13,12 +13,10 @@ private:
     std::string   query_string;
     std::string   uri_no_query;
     std::string   absolute_path;
-//    std::string                        normalized_path;
     std::string   http_v;
     bool          chunked;
     std::string   body;
     unsigned long content_length;
-    unsigned long max_body_size;
     bool          ready;
     uint16_t      parsing_error;
 
@@ -45,7 +43,6 @@ public:
     void setContentLength(unsigned long len);
     bool getChunked() const;
     std::string &getBody();
-    unsigned long getMaxBodySize() const;
     const std::string &getUriNoQuery() const;
     const std::string &getMethod() const;
     const std::string &getAbsolutPath() const;
@@ -56,7 +53,7 @@ public:
     bool parseHeaders(const std::string &buffe, size_t &pos);
     bool processUri();
     bool processHeaders();
-    bool checkContentLength();
+    bool checkContentLength(unsigned long size);
 
     const std::string &getQueryString() const;
 };

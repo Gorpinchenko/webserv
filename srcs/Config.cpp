@@ -293,7 +293,7 @@ void Config::parseClientMaxBodySize(IDirective *server, iterator &value)
     {
         throw "\'client_max_body_size\' directive supported in server only";
     }
-    ((Server *)server)->setClientMaxBodySize(atoll((*value).c_str()) * 1000000);
+    ((Server *)server)->setClientMaxBodySize(atoll((*value).c_str()));
     if (!(myNext(value) != _config.end() && *(myNext(value)) == ";"))
     {
         throw std::string(*(myPrev(value)) + " " + *value + " ->;");

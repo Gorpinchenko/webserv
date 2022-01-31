@@ -31,7 +31,7 @@ private:
     HttpResponse *response;
     std::vector<Server *>servers;
 
-    static const int DEFAULT_TIMEOUT = 2;
+    static const int DEFAULT_TIMEOUT = 20;
 
     void parseRequestMessage(size_t &pos);
     void appendBody(size_t &pos);

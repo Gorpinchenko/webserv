@@ -334,7 +334,6 @@ void HttpResponse::prepareData() {
 }
 
 int HttpResponse::send(int fd, size_t bytes) {
-//    std::cout << "HttpResponse::send" << std::endl;
     size_t  pos_var = 0;
     ssize_t res     = 0;
 
