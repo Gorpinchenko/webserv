@@ -17,7 +17,7 @@ class Cgi {
     int                                 _resFd;
     pid_t                               _pid;
     size_t                              _pos;
-    bool                               _headers_parsed;
+    bool                                _headers;
 
 public:
     explicit Cgi(const std::string& path);
@@ -45,9 +45,9 @@ public:
 
     void setPos(size_t pos);
 
-    bool isHeadersParsed() const;
+    bool isHeaders() const;
 
-    void setHeadersParsed(bool status);
+    void setHeaders(bool headers);
 
 };
 

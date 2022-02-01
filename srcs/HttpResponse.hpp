@@ -20,6 +20,8 @@
 #include "./utils/Path.hpp"
 #include "./utils/MimeType.hpp"
 
+#define CGI_BUFSIZE 32768 // 32kb - default nginx
+
 class HttpRequest;
 class Cgi;
 
@@ -132,11 +134,13 @@ public:
 
     int send(int fd, size_t bytes);
 
-    bool writeToCgi(HttpRequest *req, size_t bytes);
+    void writeToCgi(HttpRequest *req, size_t bytes);
 
     bool readCgi(size_t bytes, bool eof);
 
-    bool ParseCgiHeaders(size_t end);
+    bool parseCgiHeaders(size_t end);
+
+    bool checkCgiHeaders(size_t &i, const std::string &sep, size_t max, std::string &token);
 
 //    void processDeleteRequest(const VirtualServer *pServer, HttpRequest *req);
 };

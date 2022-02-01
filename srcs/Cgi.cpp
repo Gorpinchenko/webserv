@@ -1,12 +1,14 @@
 #include "Cgi.hpp"
 
 Cgi::Cgi(const std::string& path)
-: _path(path), _env(), _headers_parsed(false) {
+: _env() {
+    _path = path;
     _pid = -1;
     _reqFd = -1;
     _resFd = -1;
     _pos = 0;
     _arr = nullptr;
+    _headers = false;
 }
 
 Cgi::~Cgi() {
@@ -26,12 +28,12 @@ const std::map<std::string, std::string> &Cgi::getEnv() const {
     return _env;
 }
 
-bool Cgi::isHeadersParsed() const {
-    return _headers_parsed;
+bool Cgi::isHeaders() const {
+    return _headers;
 }
 
-void Cgi::setHeadersParsed(bool status) {
-    _headers_parsed = status;
+void Cgi::setHeaders(bool headers) {
+    _headers = headers;
 }
 
 char **Cgi::getEnvAsArray(HttpRequest *request, std::string ip, std::string path, uint16_t port) {

@@ -579,50 +579,46 @@ void HttpResponse::setCgi(Cgi *_cgi) {
     HttpResponse::cgi = _cgi;
 }
 
-bool HttpResponse::writeToCgi(HttpRequest *req, size_t bytes) {
-    int    fd = this->cgi->getReqFd();
+void HttpResponse::writeToCgi(HttpRequest *req, size_t bytes) {
     int    res;
     size_t size;
+    size_t position = this->cgi->getPos();
 
-    if (req->getBody().size() - this->cgi->getPos() > bytes)
+    size = req->getBody().size() - position;
+    if (req->getBody().size() - position > bytes) {
         size = bytes;
-    else
-        size = req->getBody().size() - this->cgi->getPos();
-    res      = write(fd, req->getBody().data() + this->cgi->getPos(), size);
+    }
+    res = write(this->cgi->getReqFd(), req->getBody().data() + position, size);
     if (res > 0) {
-        this->cgi->setPos(this->cgi->getPos() + res);
-    } else if (req->getBody().size() - this->cgi->getPos() > 0 && res == 0) {
-        return (false);
-    } else if (this->cgi->getPos() == req->getBody().size()) {
+        this->cgi->setPos(position + res);
+    } else if (req->getBody().size() - position > 0 && res == 0) {
+        return ;
+    } else if (position == req->getBody().size()) {
         this->cgi->setPos(0);
-        return (true);
     } else {
         this->setError(HTTP_INTERNAL_SERVER_ERROR);
-        return (true);
     }
-
-    return (false);
 }
 
 bool HttpResponse::readCgi(size_t bytes, bool eof) {
-    char tmp[1048576];
+    char buff[CGI_BUFSIZE];
     int  res;
     int  fd = this->cgi->getResFd();
+    std::string::size_type position;
 
-    res = read(fd, &tmp, bytes);
+    res = read(fd, &buff, bytes);
     if (res < 0) {
         return (false);
     }
-    body.append(tmp, bytes);
-    std::string::size_type pos_;
-    if (!this->cgi->isHeadersParsed() && (pos_ = body.find("\r\n\r\n")) != std::string::npos) {
-        if (!ParseCgiHeaders(pos_)) {
+    body.append(buff, bytes);
+    if (!this->cgi->isHeaders() && (position = body.find("\r\n\r\n")) != std::string::npos) {
+        if (!parseCgiHeaders(position)) {
             this->setError(HTTP_INTERNAL_SERVER_ERROR);
             close(fd);
             return (false);
         }
-        this->cgi->setHeadersParsed(true);
-        body.erase(body.begin(), body.begin() + pos_ + 4);
+        this->cgi->setHeaders(true);
+        body.erase(body.begin(), body.begin() + position + 4);
     }
     if (eof || res == 0) {
         body_size = body.size();
@@ -633,43 +629,43 @@ bool HttpResponse::readCgi(size_t bytes, bool eof) {
     return (false);
 }
 
-bool parse(const std::string &src, std::size_t &token_start, const std::string &token_delim, bool delim_exact,
-           std::size_t max_len,
-           std::string &token) {
-    token_start = src.find_first_not_of(" \t\r\n", token_start);
-    if (token_start == std::string::npos)
+bool HttpResponse::checkCgiHeaders(size_t &i, const std::string &sep, size_t max, std::string &token) {
+    i = body.find_first_not_of(" \t\r\n", i);
+    if (i == std::string::npos) {
         return (false);
-    std::size_t line_end = src.find_first_of("\r\n", token_start);
-    if (line_end == std::string::npos)
-        line_end = src.length();
-    std::size_t token_end = src.find_first_of(token_delim, token_start);
-    if (token_end == std::string::npos && delim_exact)
-        return false;
-    if (token_end == std::string::npos)
-        token_end = line_end;
-    token         = src.substr(token_start, token_end - token_start);
-    if (token.empty() || token.length() > max_len)
+    }
+    std::size_t end = body.find_first_of("\r\n", i);
+    if (end == std::string::npos) {
+        end = body.length();
+    }
+    std::size_t next = body.find_first_of(sep, i);
+    if (next == std::string::npos) {
+        if (sep == ":") {
+            return (false);
+        }
+        next = end;
+    }
+    token = body.substr(i, next - i);
+    if (token.empty() || token.length() > max) {
         return (false);
-    token_start = token_end;
+    }
+    i = next;
     return (true);
 }
 
-bool HttpResponse::ParseCgiHeaders(size_t end) {
-    std::string field_name;
-    std::string field_value;
-
+bool HttpResponse::parseCgiHeaders(size_t end) {
+    std::string name;
+    std::string value;
     size_t i = 0;
 
     while (i < end && body.find("\r\n\r\n", i) != i) {
-        if (!parse(body, i, ":", true, HttpRequest::MAX_NAME, field_name))
+        if (!checkCgiHeaders(i, ":", HttpRequest::MAX_NAME, name) ||
+            !checkCgiHeaders(++i, "\r\n", HttpRequest::MAX_VALUE, value)) {
             break;
-        if (!parse(body, ++i, "\r\n", false, HttpRequest::MAX_VALUE, field_value))
-            break;
-        setHeader(field_name, field_value);
-//        _response_headers.insert(std::make_pair(field_name, field_value));
+        }
+        setHeader(name, value);
     }
     if (i != end) {
-        this->setError(HTTP_INTERNAL_SERVER_ERROR);
         return (false);
     }
     return (true);
