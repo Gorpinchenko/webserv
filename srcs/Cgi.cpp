@@ -1,22 +1,24 @@
 #include "Cgi.hpp"
 
-Cgi::Cgi(const std::string& path)
-: _env() {
-    _path = path;
-    _pid = -1;
-    _reqFd = -1;
-    _resFd = -1;
-    _pos = 0;
-    _arr = nullptr;
-    _headers = false;
+Cgi::Cgi(const std::string &path) {
+    _path           = path;
+    _pid            = -1;
+    _reqFd          = -1;
+    _resFd          = -1;
+    _pos            = 0;
+    _headers_parsed = false;
+    _exit_status    = 0;
 }
 
 Cgi::~Cgi() {
-    if (_arr != nullptr) {
-        for (int i = 0; _arr[i]; ++i) {
-            delete _arr[i];
-        }
-        delete _arr;
+    if (waitpid(_pid, &_exit_status, WNOHANG) == 0) {
+        kill(_pid, SIGKILL);
+    }
+    if (_resFd != -1) {
+        close(_resFd);
+    }
+    if (_reqFd != -1) {
+        close(_reqFd);
     }
 }
 
@@ -28,52 +30,57 @@ const std::map<std::string, std::string> &Cgi::getEnv() const {
     return _env;
 }
 
-bool Cgi::isHeaders() const {
-    return _headers;
+bool Cgi::isHeadersParsed() const {
+    return _headers_parsed;
 }
 
-void Cgi::setHeaders(bool headers) {
-    _headers = headers;
+void Cgi::setHeadersParsed(bool status) {
+    _headers_parsed = status;
 }
 
-char **Cgi::getEnvAsArray(HttpRequest *request, std::string ip, std::string path, uint16_t port) {
-    std::map<std::string, std::string> headers = request->getHeaders();
+bool Cgi::prepareCgiEnv(HttpRequest *request, const std::string &absolute_path, const std::string &client_ip,
+                        const std::string &serv_port, const std::string &cgi_exec) {
+    std::map<std::string, std::string>::iterator it;
 
-    if (!headers.count("Auth-Scheme") && !headers["Auth-Scheme"].empty()) {
-        _env["AUTH_TYPE"] = headers["Authorization"];
-    }
     _env["REDIRECT_STATUS"] = "CGI";
-    _env["GATEWAY_INTERFACE"] = "CGI/1.1";
+    _env["AUTH_TYPE"]       = "";
+    _env["CONTENT_LENGTH"]  = std::to_string(request->getContentLength());
 
-    _env["SCRIPT_NAME"] = path;
-    _env["SCRIPT_FILENAME"] = request->getAbsolutPath();
-    _env["REQUEST_METHOD"] = request->getMethod();
-    _env["CONTENT_LENGTH"] = std::to_string(request->getContentLength());
-    if (headers.count("Content-Type")) {
-        _env["CONTENT_TYPE"] = headers["Content-Type"];
-    }
-    _env["PATH_INFO"] = request->getUriNoQuery();
-    _env["PATH_TRANSLATED"] = request->getUriNoQuery();
-    _env["QUERY_STRING"] = request->getQueryString();
-    _env["REMOTE_ADDR"] = ip;
-    _env["REMOTE_HOST"] = ip;
-    if (headers.count("Authorization")) {
-        _env["REMOTE_IDENT"] =  headers["Authorization"];
-        _env["REMOTE_USER"] =  headers["Authorization"];
-    }
-    _env["REQUEST_URI"] = request->getRequestUri();
-    if (headers.count("Host") && !headers["Host"].empty()) {
-        _env["SERVER_NAME"] = headers["Host"];
+    it                        = request->getHeaders().find("Content-Type");
+    if (it != request->getHeaders().end()) {
+        _env["CONTENT_TYPE"] = it->second;
     } else {
-        _env["SERVER_NAME"] = _env["REMOTE_ADDR"];
+        _env["CONTENT_TYPE"] = "";
     }
-    _env["SERVER_PORT"] = std::to_string(port);
+    _env["GATEWAY_INTERFACE"] = std::string("CGI/1.1");
+    if (!cgi_exec.empty()) {
+        _env["SCRIPT_NAME"] = cgi_exec;
+    } else {
+        _env["SCRIPT_NAME"] = "";
+    }
+    _env["SCRIPT_FILENAME"]   = absolute_path;
+    _env["PATH_TRANSLATED"]   = request->getRequestUri();
+    _env["PATH_INFO"]         = request->getRequestUri();
+    _env["QUERY_STRING"]      = request->getQueryString();
+    _env["REQUEST_URI"]       = request->getRequestUri();
+    _env["REMOTE_ADDR"]       = client_ip;
+    _env["REMOTE_HOST"]       = client_ip;
+    _env["REMOTE_IDENT"]      = "";
+    _env["REMOTE_USER"]       = "";
+    _env["REQUEST_METHOD"]    = request->getMethod();
+
+    it                      = request->getHeaders().find("Host");
+    if (it == request->getHeaders().end()) {
+        _env["SERVER_NAME"] = "0";
+    } else {
+        _env["SERVER_NAME"] = it->second;
+    }
+    _env["SERVER_PORT"]     = serv_port;
     _env["SERVER_PROTOCOL"] = "HTTP/1.1";
     _env["SERVER_SOFTWARE"] = "Weebserv/1.0";
 
     std::map<std::string, std::string>           tmp_map;
     std::map<std::string, std::string>::iterator tmp_map_iter;
-    std::map<std::string, std::string>::iterator it;
 
     for (it = request->getHeaders().begin(); it != request->getHeaders().end();) {
         std::string tmp = it->first;
@@ -87,18 +94,31 @@ char **Cgi::getEnvAsArray(HttpRequest *request, std::string ip, std::string path
     }
     _env.insert(tmp_map.begin(), tmp_map.end());
 
-    char	**env = new char*[this->_env.size() + 1];
-    int	    j = 0;
+    return true;
+}
 
-    for (std::map<std::string, std::string>::const_iterator i = this->_env.begin(); i != this->_env.end(); i++) {
-        std::string	element = i->first + "=" + i->second;
-        env[j] = new char[element.size() + 1];
-        env[j] = strcpy(env[j], (const char*)element.c_str());
-        j++;
+char **Cgi::getEnvAsArray(void) {
+    try {
+        char **res = new char *[_env.size() + 1];
+        int  i     = 0;
+
+        for (std::map<std::string, std::string>::const_iterator it = _env.begin(); it != _env.end(); ++it) {
+            if (it->second.empty()) {
+                continue;
+            }
+            std::string tmp = it->first + "=" + it->second;
+            res[i] = new char[tmp.size() + 1];
+            strcpy(res[i], tmp.data());
+            ++i;
+        }
+
+        res[i] = nullptr;
+
+        return (res);
     }
-    env[j] = NULL;
-    _arr = env;
-    return env;
+    catch (std::exception &e) {
+        return nullptr;
+    }
 }
 
 int Cgi::getReqFd() const {

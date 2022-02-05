@@ -27,11 +27,11 @@ private:
     unsigned long   c_bytes_left;
     short           skip_n;
 
-    HttpRequest  *request;
-    HttpResponse *response;
-    std::vector<Server *>servers;
+    HttpRequest           *request;
+    HttpResponse          *response;
+    std::vector<Server *> servers;
 
-    static const int DEFAULT_TIMEOUT = 20;
+    static const int DEFAULT_TIMEOUT = 30;
 
     void parseRequestMessage(size_t &pos);
     void appendBody(size_t &pos);

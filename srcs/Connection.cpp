@@ -273,11 +273,11 @@ bool Connection::parseChunked(unsigned long &pos, unsigned long bytes) {
                     this->request->setParsingError(HttpResponse::HTTP_REQUEST_ENTITY_TOO_LARGE);
                     this->request->setReady(true);
 //                    _parsing_error = HttpResponse::HTTP_REQUEST_ENTITY_TOO_LARGE;
-                    return (true);
+                    return true;
                 } else {
                     std::string &tmp = this->getBuffer();
                     tmp.erase(tmp.begin(), tmp.begin() + --pos);
-                    return (false);
+                    return false;
                 }
 //            } else if (this->c_bytes_left + this->getRequest()->getBody().size() > _max_body_size) {
             } else if (this->c_bytes_left + this->getRequest()->getBody().size() >
@@ -313,9 +313,9 @@ bool Connection::parseChunked(unsigned long &pos, unsigned long bytes) {
     if (pos == bytes) {
         this->clearBuffer();
         this->chunk_length.empty();
-        return (false);
+        return false;
     }
-    return (false);
+    return false;
 }
 
 bool Connection::isShouldClose() {

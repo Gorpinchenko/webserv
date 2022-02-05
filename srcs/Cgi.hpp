@@ -3,31 +3,34 @@
 
 # include <string>
 # include <map>
+# include <csignal>
 # include "HttpRequest.hpp"
 # include "Location.hpp"
 
 class HttpRequest;
 
 class Cgi {
-    std::string                         _path;
-    std::map<std::string, std::string>	_env;
-    char**                              _arr;
-
-    int                                 _reqFd;
-    int                                 _resFd;
-    pid_t                               _pid;
-    size_t                              _pos;
-    bool                                _headers;
-
+private:
+    std::string                        _path;
+    std::map<std::string, std::string> _env;
+    int                                _reqFd;
+    int                                _resFd;
+    pid_t                              _pid;
+    size_t                             _pos;
+    bool                               _headers_parsed;
+    int                                _exit_status;
 public:
-    explicit Cgi(const std::string& path);
+    explicit Cgi(const std::string &path);
     ~Cgi();
 
     const std::string &getPath() const;
 
     const std::map<std::string, std::string> &getEnv() const;
 
-    char **getEnvAsArray(HttpRequest *request, std::string ip, std::string path, uint16_t port);
+    char **getEnvAsArray(void);
+
+    bool prepareCgiEnv(HttpRequest *request, const std::string &absolute_path, const std::string &client_ip,
+                       const std::string &serv_port, const std::string &cgi_exec);
 
     pid_t getPid() const;
 
@@ -45,11 +48,9 @@ public:
 
     void setPos(size_t pos);
 
-    bool isHeaders() const;
+    bool isHeadersParsed() const;
 
-    void setHeaders(bool headers);
-
+    void setHeadersParsed(bool);
 };
-
 
 #endif //WEBSERV_CGI_HPP
