@@ -20,7 +20,7 @@
 #include "./utils/Path.hpp"
 #include "./utils/MimeType.hpp"
 
-#define CGI_BUFSIZE 32768 // 32kb - default nginx
+#define CGI_BUFSIZE 1048576 // 32kb - default nginx
 
 class HttpRequest;
 class Cgi;

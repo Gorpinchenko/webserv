@@ -604,7 +604,7 @@ void HttpResponse::writeToCgi(HttpRequest *req, size_t bytes) {
     } else if (req->getBody().size() - position > 0 && res == 0) {
         return;
     } else if (position == req->getBody().size()) {
-        this->cgi->setPos(0);
+//        this->cgi->setPos(0);//todo
     } else {
         this->setError(HTTP_INTERNAL_SERVER_ERROR);
     }
