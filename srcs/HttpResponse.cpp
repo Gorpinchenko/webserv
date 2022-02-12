@@ -1,6 +1,5 @@
 #include "HttpResponse.hpp"
 
-//HttpResponse::HttpResponse(Server *server, HttpResponse::HTTPStatus status) {
 HttpResponse::HttpResponse(Server *server, HttpRequest *request)
         : protocol("HTTP/1.1"),
           status_code(HTTP_OK),
@@ -9,13 +8,6 @@ HttpResponse::HttpResponse(Server *server, HttpRequest *request)
           server(server),
           request(request),
           cgi(nullptr) {
-//    this->cgi         = nullptr;
-
-//    if (config == nullptr) {
-//        setError(HTTP_BAD_REQUEST, config);
-//        return;
-//    }
-
     if (this->server == nullptr) {
         this->setError(HttpResponse::HTTP_BAD_REQUEST);
     }
@@ -45,9 +37,7 @@ HttpResponse::HttpResponse(Server *server, HttpRequest *request)
         this->setResponseString(HTTP_MOVED_PERMANENTLY);
         return;
     }
-//    if (this->location->isMaxBodySet() && this->server->getMaxBody() < this->request->getBody().size()) {
     if (this->server->getClientMaxBodySize() < this->request->getBody().size()) {
-//        session.setKeepAlive(false);
         this->setError(HTTP_REQUEST_ENTITY_TOO_LARGE);
         return;
     }
@@ -123,7 +113,6 @@ void HttpResponse::processCgiRequest(const std::string &ip) {
             dup2(out_pipe[1], STDERR_FILENO) == -1) {
             exit(EXIT_FAILURE);
         }
-        // all these are for use by parent only
         close(in_pipe[0]);
         close(in_pipe[1]);
         close(out_pipe[0]);
@@ -181,8 +170,7 @@ void HttpResponse::processGetRequest() {
 }
 
 void HttpResponse::processPostRequest() {
-    //        setError(HTTP_METHOD_NOT_ALLOWED, serv);
-    if (this->server == nullptr) {//todo непонятно, нужно ли это условие
+    if (this->server == nullptr) {
         this->setError(HTTP_BAD_REQUEST);
     } else {
         this->setResponseString(HTTP_OK);
@@ -214,7 +202,6 @@ void HttpResponse::processDeleteRequest() {
 }
 
 void HttpResponse::processPutRequest() {
-    //    std::map<std::string, std::string>::const_iterator it;
     std::string absolute_path = this->request->getAbsolutPath();
     std::string file_name;
 
@@ -224,7 +211,6 @@ void HttpResponse::processPutRequest() {
         this->setError(HTTP_METHOD_NOT_ALLOWED);
         return;
     }
-    //    it = this->request->getHeaderFields().find("Content-Type");
     if (!Path::checkIfPathExists(absolute_path) || file_name.empty()) {
         this->setError(HTTP_NOT_FOUND);
         return;
@@ -239,11 +225,6 @@ void HttpResponse::processPutRequest() {
         this->setResponseString(HTTP_CREATED);
     }
 
-    //    if (it != this->request->getHeaderFields().end())
-    //        extension = MimeType::getFileExtension(it->second);
-    //    num_files     = Utils::countFilesInFolder(loc->getFileUploadPath());
-    //    std::ofstream rf(loc->getFileUploadPath() + "uploaded_file" + std::to_string(num_files + 1) + "." + extension,
-    //                     std::ios::out | std::ios::binary);
     std::ofstream rf(absolute_path, std::ios::out | std::ios::binary);
     if (rf) {
         rf.write(this->request->getBody().data(), static_cast<long >(this->request->getBody().size()));
@@ -348,7 +329,7 @@ int HttpResponse::send(int fd, size_t bytes) {
     ssize_t res     = 0;
 
     if (_headers_vec.empty()) {
-        prepareData();
+        this->prepareData();
     }
     size_t to_send = 0;
     if (this->pos < _headers_vec.size()) {
@@ -365,8 +346,6 @@ int HttpResponse::send(int fd, size_t bytes) {
         this->pos += res;
         bytes -= res;
     }
-//    if (this->request->getMethod() == "HEAD")
-//        return (1);
     if (this->pos >= _headers_vec.size() &&
         !this->body.empty() && bytes > 0 &&
         this->body.size() > this->pos - _headers_vec.size()) {
@@ -382,13 +361,10 @@ int HttpResponse::send(int fd, size_t bytes) {
         }
         this->pos += res;
     }
-    //    float bytes_written;
-    //    bytes_written = (float) this->pos / (((float) this->body.size() + (float) _headers_vec.size()) / 100);
-    //    std::cout << "fd: " << fd << " bytes written " << bytes_written << "%" << std::endl;
     if (this->pos == _headers_vec.size() + this->body.size()) {
-        return (1);
+        return 1;
     }
-    return (0);
+    return 0;
 }
 
 const std::string &HttpResponse::getReasonForStatus(HTTPStatus status) {

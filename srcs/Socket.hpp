@@ -32,5 +32,4 @@ public:
     };
 };
 
-
 #endif //WEBSERV_SOCKET_HPP

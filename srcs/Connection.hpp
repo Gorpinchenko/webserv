@@ -6,7 +6,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <arpa/inet.h>
-//#include <sys/socket.h>
 #include <sys/event.h>
 #include "IEventSubscriber.hpp"
 #include "HttpRequest.hpp"
@@ -22,7 +21,6 @@ private:
     short           status;
     time_t          connection_timeout;
     struct sockaddr s_addr;
-//    unsigned long                      _max_body_size;
     std::string     chunk_length;
     unsigned long   c_bytes_left;
     short           skip_n;
@@ -41,10 +39,10 @@ private:
 public:
     enum Status {
         UNUSED         = 0,
-        AWAIT_NEW_REQ  = 1, // if keep alive true close
+        AWAIT_NEW_REQ  = 1,
         CGI_PROCESSING = 2,
-        SENDING        = 3,// response ready -> send
-        TIMEOUT        = 4,//should be closed with timeout;
+        SENDING        = 3,
+        TIMEOUT        = 4,
         CLOSING        = 5
     };
 

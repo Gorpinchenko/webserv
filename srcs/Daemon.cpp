@@ -19,7 +19,6 @@ void Daemon::registerSignal() {
 }
 
 void Daemon::run() {
-    std::cout << "run daemon" << std::endl;//todo delete
     std::pair<int, struct kevent *>             updates;
     struct kevent                               event = {};
     std::map<int, IEventSubscriber *>::iterator sub_it;
@@ -37,20 +36,16 @@ void Daemon::run() {
             sub_it = this->subscriber.find(sub_fd);
 
             if (event.flags & EV_ERROR) {
-                fprintf(stderr, "EV_ERROR: %s\n", strerror(static_cast<int>(event.data)));//todo мб это можно удалить
+                fprintf(stderr, "EV_ERROR: %s\n", strerror(static_cast<int>(event.data)));
             }
 
             if (sub_it != this->subscriber.end()) {
                 if (dynamic_cast<Socket *>(sub_it->second)) {
-//                    std::cout << "Socket " << std::endl;
                     Connection *connection;
-
                     connection = new Connection(dynamic_cast<Socket *>(sub_it->second));
                     this->subscribe(connection->getConnectionFd(), EVFILT_READ, connection);
                 } else if (dynamic_cast<Connection *>(sub_it->second)) {
-//                    std::cout << "Connection " << std::endl;
                     Connection *connection = dynamic_cast<Connection *>(sub_it->second);
-
                     this->processEvent(connection, sub_fd, event.data, event.filter, (event.flags & EV_EOF));
                 }
             }
@@ -65,7 +60,6 @@ void Daemon::processEvent(Connection *connection, int fd, size_t bytes_available
     int         connection_fd = connection->getConnectionFd();
     HttpRequest *request      = connection->getRequest();
 
-    // close if eof on write socket or eof on read while request was not parsed completely;
     if (connection_fd == fd && eof &&
         (filter == EVFILT_WRITE ||
          (filter == EVFILT_READ && (request == nullptr || !request->getReady()))
@@ -89,7 +83,7 @@ void Daemon::processEvent(Connection *connection, int fd, size_t bytes_available
     }
 }
 
-void Daemon::processPreviousStatus(Connection *connection, short prev_status) {//todo мб эта функция не нужна
+void Daemon::processPreviousStatus(Connection *connection, short prev_status) {
     if (prev_status == Connection::CGI_PROCESSING) {
         if (!connection->getRequest()->getBody().empty()) {
             this->events->unsubscribe(connection->getResponse()->getCgi()->getReqFd(), EVFILT_WRITE);
@@ -97,10 +91,6 @@ void Daemon::processPreviousStatus(Connection *connection, short prev_status) {/
         this->events->unsubscribe(connection->getResponse()->getCgi()->getResFd(), EVFILT_READ);
         return;
     }
-    //    } else if (prev_status == SENDING) {
-    //        _mng->unsubscribe(_fd, EVFILT_WRITE);
-    //        return;
-    //    }
 }
 
 void Daemon::processCurrentStatus(Connection *connection) {

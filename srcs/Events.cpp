@@ -9,7 +9,6 @@ Events::Events(int max_size) : max_size(max_size) {
 }
 
 void Events::subscribe(int fd, short type) {
-//    std::cout << "Events::subscribe " << type << std::endl;
     this->fds.insert(fd);
 
     uint64_t t_fd   = fd;
@@ -27,14 +26,13 @@ void Events::subscribe(int fd, short type) {
     }
 }
 
-void Events::unsubscribe(int fd, short type) {//todo мб это не нужно
-    //todo свудфть нормальную отписку от событий
-    (void)type;//todo задействовать
+void Events::unsubscribe(int fd, short type) {
+    (void)type;
     this->fds.erase(fd);
 }
 
 std::pair<int, struct kevent *> Events::getUpdates(int tout) {
-    struct timespec tmout = {tout,0};// block for 5 seconds at most
+    struct timespec tmout = {tout,0};
     int             res   = kevent(this->queue_fd, nullptr, 0, this->res_event, this->max_size, &tmout);
 
     return std::make_pair(res, this->res_event);

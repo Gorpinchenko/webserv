@@ -40,7 +40,6 @@ std::string Path::getAutoIndexHtml(const std::string &path, const std::string &u
     table += "</table>";
 
     return table;
-//    insertTableIntoBody(table, uri_path);
 }
 
 const std::string Path::AUTOINDEX_HTML = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><title></title></head><style>table {border: 1px solid #ccc;background-color: #f8f8f8;border-collapse: collapse;margin: 0;padding: 0;width: 100%;table-layout: fixed;text-align: left;}table td:last-child {border-bottom: 0;}</style><body></body></html>";
@@ -115,7 +114,6 @@ bool Path::checkIfPathExists(const std::string &path) {
 }
 
 std::string Path::getFullPath(const std::string &loc_path, const std::string &root, const std::string &uri) {
-    //todo можно упростить
     std::string res = uri;
 
     if (*loc_path.begin() == '*') {

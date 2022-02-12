@@ -8,7 +8,7 @@ class AHttpMessage {
 protected:
     std::map<std::string, std::string> headers;
     bool parse(const std::string &src, std::size_t &token_start, const std::string &token_delim, bool delim_exact,
-               std::size_t limit, std::string &buff);//todo преписать
+               std::size_t limit, std::string &buff);
 public:
     enum HTTPStatus {
         HTTP_CONTINUE                        = 100,

@@ -5,9 +5,9 @@ Connection::Connection(Socket *socket)
         : keep_alive(false),
           status(UNUSED),
           connection_timeout(),
-          chunk_length(), //todo поменять название или вынести отсюда
-          c_bytes_left(0), //todo поменять название или вынести отсюда
-          skip_n(0), //todo поменять название или вынести отсюда
+          chunk_length(),
+          c_bytes_left(0),
+          skip_n(0),
           request(nullptr),
           response(nullptr),
           servers(socket->getServers()) {
@@ -82,9 +82,7 @@ void Connection::prepareResponse() {
     this->buffer.clear();
 
 //        std::cout << *this->request << std::endl;//todo мб сделать запись в консоль
-    if (this->response == nullptr) {//todo потом удалить наверно
-//        this->response = new HttpResponse(this->server, static_cast<HttpResponse::HTTPStatus>(this->request->getParsingError()));
-        //TODO мб тут проверять, что нет правил для такого запроса
+    if (this->response == nullptr) {
         this->response = new HttpResponse(this->getServer(), this->request);
     }
 
@@ -128,7 +126,7 @@ void Connection::prepareResponseMessage() {
 void Connection::processResponse(size_t bytes, bool eof) {
     int res = 0;
     if (eof || (res = this->response->send(this->connection_fd, bytes)) == 1) {
-//        std::cout << *this->response;
+//        std::cout << *this->response; //todo делать запись в консоль
         if (!this->keep_alive) {
             this->status = CLOSING;
         } else {
@@ -226,10 +224,10 @@ void Connection::appendBody(size_t &pos) {
             }
         } else if (buff.size() + this->request->getBody().size() - pos > this->request->getContentLength()) {
             len               = this->request->getContentLength() - this->request->getBody().size();
-            std::string &body = this->request->getBody();//todo возможно это не будет работать как надо
+            std::string &body = this->request->getBody();
             body.insert(this->request->getBody().end(), buff.begin() + pos, buff.begin() + pos + len);
         } else {
-            std::string &body = this->request->getBody();//todo возможно это не будет работать как надо
+            std::string &body = this->request->getBody();
             body.insert(this->request->getBody().end(), buff.begin() + pos, buff.end());
         }
         if (this->request->getBody().size() == this->request->getContentLength()) {
@@ -272,19 +270,15 @@ bool Connection::parseChunked(unsigned long &pos, unsigned long bytes) {
                 if (errno == ERANGE) {
                     this->request->setParsingError(HttpResponse::HTTP_REQUEST_ENTITY_TOO_LARGE);
                     this->request->setReady(true);
-//                    _parsing_error = HttpResponse::HTTP_REQUEST_ENTITY_TOO_LARGE;
                     return true;
                 } else {
                     std::string &tmp = this->getBuffer();
                     tmp.erase(tmp.begin(), tmp.begin() + --pos);
                     return false;
                 }
-//            } else if (this->c_bytes_left + this->getRequest()->getBody().size() > _max_body_size) {
             } else if (this->c_bytes_left + this->getRequest()->getBody().size() >
                        this->getServer()->getClientMaxBodySize()) {
                 this->request->setParsingError(HttpResponse::HTTP_REQUEST_ENTITY_TOO_LARGE);
-//                this->setReady(true);//todo тут этой хуйни не надо
-//                _parsing_error = HttpResponse::HTTP_REQUEST_ENTITY_TOO_LARGE;
             }
             this->skip_n += 2;
         }
@@ -301,7 +295,6 @@ bool Connection::parseChunked(unsigned long &pos, unsigned long bytes) {
             }
             if (this->request->getParsingError() == HttpResponse::HTTP_OK) {
                 this->getRequest()->getBody().append(request_buff.data() + pos, end);
-//                _body.append(request_buff.data() + pos, end);
             }
             this->c_bytes_left -= end;
             pos += end;
@@ -387,7 +380,6 @@ Connection::ConnectionException::ConnectionException(const char *msg) : m_msg(ms
 Connection::ConnectionException::~ConnectionException() throw() {}
 
 const char *Connection::ConnectionException::what() const throw() {
-//    end();
     std::cerr << "ConnectionError: ";
     return this->m_msg;
 }

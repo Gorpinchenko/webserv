@@ -1,17 +1,7 @@
 #ifndef WEBSERV_HTTPRESPONSE_HPP
 #define WEBSERV_HTTPRESPONSE_HPP
 
-//#include <map>
-//#include <iostream>
-//#include <cstdio>
 #include<fstream>
-//#include <fstream>
-//#include <vector>
-//#include <string>
-//#include <cstddef>
-//#include <sys/types.h>
-//#include <sys/wait.h>
-
 #include <unistd.h>
 #include "AHttpMessage.hpp"
 #include "HttpRequest.hpp"
@@ -20,7 +10,7 @@
 #include "./utils/Path.hpp"
 #include "./utils/MimeType.hpp"
 
-#define CGI_BUFSIZE 1048576 // 32kb - default nginx
+#define CGI_BUFSIZE 1048576
 
 class HttpRequest;
 class Cgi;
@@ -31,14 +21,10 @@ private:
     u_int16_t         status_code;
     std::string       status_reason;
     std::string       response_string;
-//    std::string                        _absolute_path;
-//    //	const VirtualServer *_serv;
-//    std::map<std::string, std::string> _response_headers;
     std::string       body;
     std::size_t       body_size;
-    std::vector<char> _headers_vec;//todo delete
+    std::vector<char> _headers_vec;
     size_t            pos;
-//    const VirtualServer                *_config;
     const Location    *location;
     Server            *server;
     HttpRequest       *request;
@@ -46,10 +32,8 @@ private:
 
     HTTPStatus writeFileToBuffer(const std::string &file_path);
     void setError(HTTPStatus code);
-    void prepareData();//todo delete
+    void prepareData();
 public:
-
-
     static const std::string HTTP_REASON_CONTINUE;
     static const std::string HTTP_REASON_SWITCHING_PROTOCOLS;
     static const std::string HTTP_REASON_PROCESSING;
@@ -115,7 +99,6 @@ public:
 //    static const std::string DATE;
 //    static const std::string SET_COOKIE;
 
-//HttpResponse(Server *server, HttpResponse::HTTPStatus status);
     HttpResponse(Server *server, HttpRequest *request);
     uint16_t getStatusCode() const;
     static const std::string &getReasonForStatus(HTTPStatus status);
@@ -129,21 +112,13 @@ public:
     void processPutRequest();
 
     Cgi *getCgi() const;
-
     void setCgi(Cgi *_cgi);
 
     int send(int fd, size_t bytes);
-
     void writeToCgi(HttpRequest *req, size_t bytes);
-
     bool readCgi(size_t bytes, bool eof);
-
     bool parseCgiHeaders(size_t end);
-
     bool checkCgiHeaders(size_t &i, const std::string &sep, size_t max, std::string &token);
-
-//    void processDeleteRequest(const VirtualServer *pServer, HttpRequest *req);
 };
-
 
 #endif //WEBSERV_HTTPRESPONSE_HPP

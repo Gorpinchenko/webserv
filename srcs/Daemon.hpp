@@ -14,7 +14,6 @@ class Daemon {
 private:
     Config                            *config;
     std::map<int, IEventSubscriber *> subscriber;
-//    std::map<int, Socket *>     sockets;
     std::map<int, Connection *>       connections;
     Events                            *events;
 
