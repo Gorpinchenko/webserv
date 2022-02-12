@@ -89,7 +89,7 @@ void freeEnv(char **env) {
 void HttpResponse::processCgiRequest(const std::string &ip) {
     this->cgi->prepareCgiEnv(this->request, this->request->getAbsolutPath(), ip, std::to_string(server->getPort()),
                              this->location->getCgiPass());
-    char  *argv[2];
+    char  *argv[3];
     int   in_pipe[2];
     int   out_pipe[2];
     pid_t child_pid;
@@ -100,8 +100,9 @@ void HttpResponse::processCgiRequest(const std::string &ip) {
         return;
     }
 
-    argv[0] = const_cast<char *>(request->getAbsolutPath().data());
-    argv[1] = nullptr;
+    argv[0] = const_cast<char *>(cgi->getPath().data());
+    argv[1] = const_cast<char *>(request->getAbsolutPath().data());
+    argv[2] = nullptr;
 
     if (pipe(in_pipe) < 0) {
         freeEnv(env);
