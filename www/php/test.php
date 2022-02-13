@@ -2,5 +2,9 @@
 
 session_start();
 // var_dump( $_SESSION);
-echo $_SESSION['sess_key'] . '<br>';
-// echo $_SESSION['sess_key1'] . '<br>';
+if (isset($_SESSION['sess_key'])) {
+    echo $_SESSION['sess_key'] . '<br>';
+}
+if (isset($_SESSION['sess_key1'])) {
+    echo $_SESSION['sess_key1'] . '<br>';
+}
