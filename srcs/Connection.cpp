@@ -20,9 +20,11 @@ Connection::Connection(Socket *socket)
         throw ConnectionException(strerror(errno));
     }
     this->connection_fd = new_fd;
+//    std::cout << "created " << *this;
 }
 
 Connection::~Connection() {
+//    std::cout << "destroyed" << *this;
     if (this->response != nullptr) {
         delete this->response;
         this->response = nullptr;
@@ -31,6 +33,10 @@ Connection::~Connection() {
         delete this->request;
         this->request = nullptr;
     }
+}
+
+time_t Connection::getConnectionTimeout() const {
+    return this->connection_timeout;
 }
 
 int Connection::getConnectionFd() const {
@@ -81,7 +87,7 @@ void Connection::prepareResponse() {
     }
     this->buffer.clear();
 
-//        std::cout << *this->request << std::endl;//todo мб сделать запись в консоль
+    std::cout << *this->request << std::endl;
     if (this->response == nullptr) {
         this->response = new HttpResponse(this->getServer(), this->request);
     }
@@ -126,7 +132,7 @@ void Connection::prepareResponseMessage() {
 void Connection::processResponse(size_t bytes, bool eof) {
     int res = 0;
     if (eof || (res = this->response->send(this->connection_fd, bytes)) == 1) {
-//        std::cout << *this->response; //todo делать запись в консоль
+        std::cout << *this->response << std::endl;
         if (!this->keep_alive) {
             this->status = CLOSING;
         } else {
@@ -340,6 +346,9 @@ void Connection::clearBuffer() {
 }
 
 Server *Connection::getServer() {
+    if (this->request == nullptr) {
+        return this->servers[0];
+    }
     std::map<std::string, std::string>                 &headers = this->request->getHeaders();
     std::map<std::string, std::string>::const_iterator it;
     std::vector<Server *>::const_iterator              server_it;

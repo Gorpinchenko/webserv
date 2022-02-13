@@ -3,6 +3,11 @@
 
 #include <iostream>
 #include "HttpRequest.hpp"
+#include "Connection.hpp"
+
+#define PRINT_LEVEL 1
+
+class Connection;
 
 class Print {
 
@@ -32,12 +37,12 @@ enum Code {
     BG_DEFAULT       = 49
 };
 
-//std::ostream &operator<<(std::ostream &os, Code cod);
+std::ostream &operator<<(std::ostream &os, Code cod);
 
 std::ostream &operator<<(std::ostream &out,  HttpRequest &c);
 
-//std::ostream &operator<<(std::ostream &out, const HttpResponse &c);
+std::ostream &operator<<(std::ostream &out, HttpResponse &c);
 
-//std::ostream &operator<<(std::ostream &out, const Session &c);
+std::ostream &operator<<(std::ostream &out, Connection &c);
 
 #endif //WEBSERV_PRINT_HPP

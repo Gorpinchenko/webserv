@@ -15,7 +15,6 @@ private:
     std::string   absolute_path;
     std::string   http_v;
     bool          chunked;
-    std::string   body;
     unsigned long content_length;
     bool          ready;
     uint16_t      parsing_error;
@@ -42,7 +41,6 @@ public:
     unsigned long getContentLength() const;
     void setContentLength(unsigned long len);
     bool getChunked() const;
-    std::string &getBody();
     const std::string &getUriNoQuery() const;
     const std::string &getMethod() const;
     const std::string &getAbsolutPath() const;

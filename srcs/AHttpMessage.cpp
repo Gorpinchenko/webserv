@@ -39,6 +39,10 @@ std::map<std::string, std::string> &AHttpMessage::getHeaders() {
     return this->headers;
 }
 
+std::string &AHttpMessage::getBody() {
+    return this->body;
+}
+
 void AHttpMessage::setHeader(const std::string key, const std::string value) {
     this->headers[key] = value;
 }

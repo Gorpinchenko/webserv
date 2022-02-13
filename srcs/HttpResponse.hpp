@@ -10,9 +10,10 @@
 #include "./utils/Path.hpp"
 #include "./utils/MimeType.hpp"
 
-#define CGI_BUFSIZE 1048576
+#define CGI_BUF_SIZE 1048576
 
 class HttpRequest;
+
 class Cgi;
 
 class HttpResponse : public AHttpMessage {
@@ -21,7 +22,6 @@ private:
     u_int16_t         status_code;
     std::string       status_reason;
     std::string       response_string;
-    std::string       body;
     std::size_t       body_size;
     std::vector<char> _headers_vec;
     size_t            pos;
@@ -103,6 +103,7 @@ public:
     uint16_t getStatusCode() const;
     static const std::string &getReasonForStatus(HTTPStatus status);
     void setResponseString(HTTPStatus status);
+    const std::string &getResponseString() const;
 
     bool isCgi();
     void processCgiRequest(const std::string &ip);

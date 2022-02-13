@@ -61,6 +61,10 @@ void HttpResponse::setResponseString(HTTPStatus status) {
             this->protocol + " " + std::to_string(this->status_code) + " " + this->status_reason + "\r\n";
 }
 
+const std::string &HttpResponse::getResponseString() const{
+    return this->response_string;
+}
+
 bool HttpResponse::isCgi() {
     return (this->location != nullptr) && !(this->location->getCgiPass().empty()) && (this->cgi != nullptr);
 }
@@ -588,7 +592,7 @@ void HttpResponse::writeToCgi(HttpRequest *req, size_t bytes) {
 }
 
 bool HttpResponse::readCgi(size_t bytes, bool eof) {
-    char                   buff[CGI_BUFSIZE];
+    char                   buff[CGI_BUF_SIZE];
     int                    res;
     int                    fd = this->cgi->getResFd();
     std::string::size_type position;

@@ -6,6 +6,7 @@
 
 class AHttpMessage {
 protected:
+    std::string                        body;
     std::map<std::string, std::string> headers;
     bool parse(const std::string &src, std::size_t &token_start, const std::string &token_delim, bool delim_exact,
                std::size_t limit, std::string &buff);
@@ -81,6 +82,7 @@ public:
 
     std::map<std::string, std::string> &getHeaders();
     void setHeader(std::string key, std::string value);
+    std::string &getBody();
 };
 
 #endif //WEBSERV_AHTTPMESSAGE_HPP

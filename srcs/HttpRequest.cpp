@@ -9,7 +9,6 @@ HttpRequest::HttpRequest()
         absolute_path(),
         http_v("HTTP/1.1"),
         chunked(false),
-        body(),
         content_length(0),
         ready(false),
         parsing_error(HttpResponse::HTTP_OK) {}
@@ -44,10 +43,6 @@ void HttpRequest::setContentLength(unsigned long len) {
 
 bool HttpRequest::getChunked() const {
     return this->chunked;
-}
-
-std::string &HttpRequest::getBody() {
-    return this->body;
 }
 
 const std::string &HttpRequest::getUriNoQuery() const {

@@ -34,8 +34,6 @@ private:
     void parseRequestMessage(size_t &pos);
     void appendBody(size_t &pos);
     bool parseChunked(unsigned long &pos, unsigned long bytes);
-    Server *getServer();
-    std::string getIp();
 public:
     enum Status {
         UNUSED         = 0,
@@ -49,6 +47,9 @@ public:
     Connection(Socket *socket);
     ~Connection();
 
+    Server *getServer();
+    std::string getIp();
+    time_t getConnectionTimeout() const;
     int getConnectionFd() const;
     bool getKeepAlive() const;
     short getStatus() const;
