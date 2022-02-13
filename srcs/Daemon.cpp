@@ -140,6 +140,33 @@ void Daemon::removeExpiredConnections() {
     std::vector<int>::iterator it;
     for (it = to_delete.begin(); it != to_delete.end(); ++it) {
         this->unsubscribe(*it, EVFILT_READ);
+
+        connection_it = this->connections.find(*it);
+        if (connection_it != this->connections.end()) {
+            Connection                                  *connection;
+            std::map<int, Connection *>::iterator       it_c;
+            std::map<int, IEventSubscriber *>::iterator it_s;
+
+            connection = connection_it->second;
+
+            for (it_c = this->connections.begin(); it_c != this->connections.end();) {
+                if (it_c->second == connection) {
+                    it_c = this->connections.erase(it_c);
+                } else {
+                    ++it_c;
+                }
+            }
+
+            for (it_s = this->subscriber.begin(); it_s != this->subscriber.end();) {
+                if (it_s->second == connection) {
+                    it_s = this->subscriber.erase(it_s);
+                } else {
+                    ++it_s;
+                }
+            }
+
+            delete connection;
+        }
     }
 }
 
@@ -152,12 +179,6 @@ void Daemon::subscribe(int fd, short type, Connection *connection) {
 void Daemon::unsubscribe(int fd, short type) {
     this->events->unsubscribe(fd, type);
     close(fd);
-    //            processPreviousStatus(_status);
-    //            if(_response != nullptr && _response->getCgi() != nullptr) {
-    //                this->events->unsubscribe(_response->getCgi()->getRequestPipe(), EVFILT_WRITE);
-    //                this->events->unsubscribe(_response->getCgi()->getResponsePipe(), EVFILT_READ);
-    //            }
-    //            connection_it->second->close();
 
     std::map<int, IEventSubscriber *>::iterator sub_it;
     sub_it = this->subscriber.find(fd);
@@ -168,8 +189,6 @@ void Daemon::unsubscribe(int fd, short type) {
     std::map<int, Connection *>::iterator connection_it;
     connection_it = this->connections.find(fd);
     if (connection_it != this->connections.end()) {
-//        delete connection_it->second;
-        connection_it->second = nullptr;
         this->connections.erase(connection_it);
     }
 }

@@ -20,11 +20,11 @@ Connection::Connection(Socket *socket)
         throw ConnectionException(strerror(errno));
     }
     this->connection_fd = new_fd;
-//    std::cout << "created " << *this;
+    std::cout << "created " << *this;
 }
 
 Connection::~Connection() {
-//    std::cout << "destroyed" << *this;
+    std::cout << "destroyed" << *this;
     if (this->response != nullptr) {
         delete this->response;
         this->response = nullptr;
