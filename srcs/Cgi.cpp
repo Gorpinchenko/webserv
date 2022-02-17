@@ -14,12 +14,6 @@ Cgi::~Cgi() {
     if (waitpid(_pid, &_exit_status, WNOHANG) == 0) {
         kill(_pid, SIGKILL);
     }
-    if (_resFd != -1) {
-        close(_resFd);
-    }
-    if (_reqFd != -1) {
-        close(_reqFd);
-    }
 }
 
 const std::string &Cgi::getPath() const {

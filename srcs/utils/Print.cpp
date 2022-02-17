@@ -24,7 +24,7 @@ std::ostream &operator<<(std::ostream &out, HttpRequest &c) {
         out << c.getBody() << std::endl;
     }
     if (PRINT_LEVEL > 0) {
-        out << FG_DEFAULT;
+        out << std::endl << FG_DEFAULT;
     }
     return out;
 }
@@ -50,17 +50,21 @@ std::ostream &operator<<(std::ostream &out, HttpResponse &c) {
         out << c.getBody() << std::endl;
     }
     if (PRINT_LEVEL > 0) {
-        out << FG_DEFAULT;
+        out << std::endl << FG_DEFAULT;
     }
     return out;
 }
 
 std::ostream &operator<<(std::ostream &out, Connection &c) {
     if (PRINT_LEVEL > 0) {
-        (void) c;
         out << FG_LIGHT_CYAN << ">>>> [Connection] <<<<" << std::endl;
-        out << "Host: " << std::to_string(c.getServer()->getHost()) << " "
-            << "Port: " << std::to_string(c.getServer()->getPort()) << std::endl;
+
+        Server *server = c.getServer();
+        if (server) {
+            out << "Host: " << std::to_string(server->getHost()) << " "
+                << "Port: " << std::to_string(server->getPort()) << std::endl;
+        }
+
         time_t t = c.getConnectionTimeout();
         char   buf[100];
         std::strftime(buf, 100, "%a, %d %b %Y %H:%M:%S %Z", gmtime(&t));

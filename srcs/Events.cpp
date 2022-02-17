@@ -26,8 +26,7 @@ void Events::subscribe(int fd, short type) {
     }
 }
 
-void Events::unsubscribe(int fd, short type) {
-    (void)type;
+void Events::unsubscribe(int fd) {
     this->fds.erase(fd);
 }
 

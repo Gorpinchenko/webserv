@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <map>
+#include <set>
 #include <csignal>
 #include "Config.hpp"
 #include "Socket.hpp"
@@ -14,7 +15,7 @@ class Daemon {
 private:
     Config                            *config;
     std::map<int, IEventSubscriber *> subscriber;
-    std::map<int, Connection *>       connections;
+    std::set<Connection *>            connections;
     Events                            *events;
 
     static void registerSignal();
@@ -23,7 +24,7 @@ private:
     void processPreviousStatus(Connection *connection, short prev_status);
     void processCurrentStatus(Connection *connection);
     void subscribe(int fd, short type, Connection *connection);
-    void unsubscribe(int fd, short type);
+    void unsubscribe(Connection *connection);
 public:
     Daemon(Config *config, const std::map<int, Socket *> &sockets, Events *events);
     void run();

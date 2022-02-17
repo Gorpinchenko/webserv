@@ -100,6 +100,7 @@ public:
 //    static const std::string SET_COOKIE;
 
     HttpResponse(Server *server, HttpRequest *request);
+    ~HttpResponse();
     uint16_t getStatusCode() const;
     static const std::string &getReasonForStatus(HTTPStatus status);
     void setResponseString(HTTPStatus status);

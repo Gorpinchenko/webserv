@@ -20,11 +20,17 @@ Connection::Connection(Socket *socket)
         throw ConnectionException(strerror(errno));
     }
     this->connection_fd = new_fd;
-    std::cout << "created " << *this;
+
+    if (PRINT_LEVEL > 0) {
+        std::cout << "created " << *this;
+    }
 }
 
 Connection::~Connection() {
-    std::cout << "destroyed" << *this;
+    if (PRINT_LEVEL > 0) {
+        std::cout << "destroyed" << *this;
+    }
+
     if (this->response != nullptr) {
         delete this->response;
         this->response = nullptr;
@@ -87,7 +93,7 @@ void Connection::prepareResponse() {
     }
     this->buffer.clear();
 
-    std::cout << *this->request << std::endl;
+    std::cout << *this->request;
     if (this->response == nullptr) {
         this->response = new HttpResponse(this->getServer(), this->request);
     }
@@ -132,7 +138,7 @@ void Connection::prepareResponseMessage() {
 void Connection::processResponse(size_t bytes, bool eof) {
     int res = 0;
     if (eof || (res = this->response->send(this->connection_fd, bytes)) == 1) {
-        std::cout << *this->response << std::endl;
+        std::cout << *this->response;
         if (!this->keep_alive) {
             this->status = CLOSING;
         } else {
@@ -357,7 +363,7 @@ Server *Connection::getServer() {
     it = headers.find("Host");
 
     if (it == headers.end()) {
-        return nullptr;
+        return this->servers[0];
     }
 
     host = it->second.substr(0, it->second.find(":"));

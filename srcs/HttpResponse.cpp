@@ -50,6 +50,13 @@ HttpResponse::HttpResponse(Server *server, HttpRequest *request)
     }
 }
 
+HttpResponse::~HttpResponse() {
+    if (this->cgi != nullptr) {
+        delete this->cgi;
+        this->cgi = nullptr;
+    }
+}
+
 uint16_t HttpResponse::getStatusCode() const {
     return this->status_code;
 }

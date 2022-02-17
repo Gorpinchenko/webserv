@@ -69,5 +69,6 @@ int main(int argc, char **argv) {
         run(path_to_file);
     } catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
+        exit(EXIT_FAILURE);
     }
 }

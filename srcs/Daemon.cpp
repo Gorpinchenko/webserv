@@ -64,7 +64,7 @@ void Daemon::processEvent(Connection *connection, int fd, size_t bytes_available
         (filter == EVFILT_WRITE ||
          (filter == EVFILT_READ && (request == nullptr || !request->getReady()))
         )) {
-        this->unsubscribe(connection_fd, EVFILT_READ);
+        this->unsubscribe(connection);
 //        return end();
         return;
     } else if ((connection->getStatus() == Connection::AWAIT_NEW_REQ || connection->getStatus() == Connection::UNUSED)
@@ -86,18 +86,16 @@ void Daemon::processEvent(Connection *connection, int fd, size_t bytes_available
 void Daemon::processPreviousStatus(Connection *connection, short prev_status) {
     if (prev_status == Connection::CGI_PROCESSING) {
         if (!connection->getRequest()->getBody().empty()) {
-            this->events->unsubscribe(connection->getResponse()->getCgi()->getReqFd(), EVFILT_WRITE);
+            this->events->unsubscribe(connection->getResponse()->getCgi()->getReqFd());
         }
-        this->events->unsubscribe(connection->getResponse()->getCgi()->getResFd(), EVFILT_READ);
+        this->events->unsubscribe(connection->getResponse()->getCgi()->getResFd());
         return;
     }
 }
 
 void Daemon::processCurrentStatus(Connection *connection) {
-    int   connection_fd;
     short status;
 
-    connection_fd = connection->getConnectionFd();
     status        = connection->getStatus();
     if (status == Connection::AWAIT_NEW_REQ) {
         this->subscribe(connection->getConnectionFd(), EVFILT_READ, connection);
@@ -117,7 +115,7 @@ void Daemon::processCurrentStatus(Connection *connection) {
         return;
     }
     if (status == Connection::CLOSING) {
-        this->unsubscribe(connection_fd, EVFILT_READ);
+        this->unsubscribe(connection);
     }
 }
 
@@ -126,69 +124,49 @@ void Daemon::removeExpiredConnections() {
         return;
     }
 
-    std::vector<int> to_delete;
-
-    std::map<int, Connection *>::iterator connection_it;
+    std::vector<Connection *> to_delete;
+    std::set<Connection *>::iterator connection_it;
 
     for (connection_it = this->connections.begin(); connection_it != this->connections.end();) {
-        if (connection_it->second->isShouldClose()) {
-            to_delete.push_back(connection_it->first);
+        if ((*connection_it)->isShouldClose()) {
+            to_delete.push_back(*connection_it);
         }
         ++connection_it;
     }
 
-    std::vector<int>::iterator it;
+    std::vector<Connection *>::iterator it;
     for (it = to_delete.begin(); it != to_delete.end(); ++it) {
-        this->unsubscribe(*it, EVFILT_READ);
-
-        connection_it = this->connections.find(*it);
-        if (connection_it != this->connections.end()) {
-            Connection                                  *connection;
-            std::map<int, Connection *>::iterator       it_c;
-            std::map<int, IEventSubscriber *>::iterator it_s;
-
-            connection = connection_it->second;
-
-            for (it_c = this->connections.begin(); it_c != this->connections.end();) {
-                if (it_c->second == connection) {
-                    it_c = this->connections.erase(it_c);
-                } else {
-                    ++it_c;
-                }
-            }
-
-            for (it_s = this->subscriber.begin(); it_s != this->subscriber.end();) {
-                if (it_s->second == connection) {
-                    it_s = this->subscriber.erase(it_s);
-                } else {
-                    ++it_s;
-                }
-            }
-
-            delete connection;
-        }
+        this->unsubscribe(*it);
     }
 }
 
 void Daemon::subscribe(int fd, short type, Connection *connection) {
     this->subscriber.insert(std::make_pair(fd, connection));
-    this->connections.insert(std::make_pair(fd, connection));
+    this->connections.insert(connection);
     this->events->subscribe(fd, type);
 }
 
-void Daemon::unsubscribe(int fd, short type) {
-    this->events->unsubscribe(fd, type);
-    close(fd);
+void Daemon::unsubscribe(Connection *connection) {
+    std::set<Connection *>::iterator       it_c;
+    std::map<int, IEventSubscriber *>::iterator it_s;
 
-    std::map<int, IEventSubscriber *>::iterator sub_it;
-    sub_it = this->subscriber.find(fd);
-    if (sub_it != this->subscriber.end()) {
-        this->subscriber.erase(sub_it);
+    for (it_c = this->connections.begin(); it_c != this->connections.end();) {
+        if (*it_c == connection) {
+            it_c = this->connections.erase(it_c);
+        } else {
+            ++it_c;
+        }
     }
 
-    std::map<int, Connection *>::iterator connection_it;
-    connection_it = this->connections.find(fd);
-    if (connection_it != this->connections.end()) {
-        this->connections.erase(connection_it);
+    for (it_s = this->subscriber.begin(); it_s != this->subscriber.end();) {
+        if (it_s->second == connection) {
+            this->events->unsubscribe(it_s->first);
+            close(it_s->first);
+            it_s = this->subscriber.erase(it_s);
+        } else {
+            ++it_s;
+        }
     }
+
+    delete connection;
 }
