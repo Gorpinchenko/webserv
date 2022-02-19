@@ -57,11 +57,11 @@ short Connection::getStatus() const {
     return this->status;
 }
 
-void Connection::parseRequest(size_t bytes_available) {
+bool Connection::parseRequest(size_t bytes_available) {
     std::string res(bytes_available, 0);
 
     if (read(this->connection_fd, &res[0], bytes_available) < 0) {
-//        end();
+        return false;
     }
     this->buffer.append(res);
 
@@ -85,6 +85,7 @@ void Connection::parseRequest(size_t bytes_available) {
         }
     }
     std::time(&this->connection_timeout);
+    return true;
 }
 
 void Connection::prepareResponse() {
@@ -135,7 +136,7 @@ void Connection::prepareResponseMessage() {
     }
 }
 
-void Connection::processResponse(size_t bytes, bool eof) {
+bool Connection::processResponse(size_t bytes, bool eof) {
     int res = 0;
     if (eof || (res = this->response->send(this->connection_fd, bytes)) == 1) {
         std::cout << *this->response;
@@ -153,9 +154,10 @@ void Connection::processResponse(size_t bytes, bool eof) {
             this->response = nullptr;
         }
     } else if (res == -1) {
-//        end();//todo
+        return false;
     }
     std::time(&this->connection_timeout);
+    return true;
 }
 
 /**
@@ -193,8 +195,6 @@ void Connection::parseRequestMessage(size_t &pos) {
 
     if (this->request->getParsingError() != HttpResponse::HTTP_OK
         && this->request->getParsingError() != HttpResponse::HTTP_REQUEST_ENTITY_TOO_LARGE) {
-//        this->request->setParsingError(this->request->getParsingError());//todo разобраться, нужно или нет
-//this->setReady(true);
         return;
     }
     if (this->request->getRequestUri().empty()) {

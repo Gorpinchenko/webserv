@@ -57,11 +57,11 @@ public:
     std::string &getBuffer();
     void clearBuffer();
 
-    void parseRequest(size_t bytes);
+    bool parseRequest(size_t bytes);
     bool isShouldClose();
     void prepareResponse();
     void prepareResponseMessage();
-    void processResponse(size_t bytes, bool eof);
+    bool processResponse(size_t bytes, bool eof);
     void processCgi(int fd, size_t bytes_available, int16_t filter, bool eof);
 
     class ConnectionException : public std::exception {

@@ -65,16 +65,21 @@ void Daemon::processEvent(Connection *connection, int fd, size_t bytes_available
          (filter == EVFILT_READ && (request == nullptr || !request->getReady()))
         )) {
         this->unsubscribe(connection);
-//        return end();
         return;
     } else if ((connection->getStatus() == Connection::AWAIT_NEW_REQ || connection->getStatus() == Connection::UNUSED)
                && filter == EVFILT_READ && fd == connection_fd && bytes_available > 0) {
-        connection->parseRequest(bytes_available);
+        if(!connection->parseRequest(bytes_available)) {
+            this->unsubscribe(connection);
+            return;
+        }
         connection->prepareResponse();
     } else if (connection->getStatus() == Connection::CGI_PROCESSING) {
         connection->processCgi(fd, bytes_available, filter, eof);
     } else if (connection->getStatus() == Connection::SENDING && filter == EVFILT_WRITE && fd == connection_fd) {
-        connection->processResponse(bytes_available, eof);
+        if(!connection->processResponse(bytes_available, eof)) {
+            this->unsubscribe(connection);
+            return;
+        }
     }
 
     if (prev_status != connection->getStatus()) {
