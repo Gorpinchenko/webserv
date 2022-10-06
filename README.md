@@ -1,6 +1,6 @@
 # webserv
 
-### This is a project in which i write my own HTTP server.
+### This is a project in which we write our own HTTP server.
 
 This is when i finally understand why a URL starts
 with HTTP
